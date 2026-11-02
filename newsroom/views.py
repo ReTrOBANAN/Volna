@@ -42,6 +42,12 @@ def _aware_day(day):
     return timezone.make_aware(datetime.combine(day, time.min))
 
 
+def _months_ago(day, months):
+    year, month = divmod(day.year * 12 + day.month - 1 - months, 12)
+    month += 1
+    return day.replace(year=year, month=month, day=min(day.day, calendar.monthrange(year, month)[1]))
+
+
 def _form_page(request, form, title, cancel_name, *, cancel_args=None, submit_label="Сохранить"):
     return render(request, "newsroom/form.html", {
         "form": form, "title": title, "page_title": title, "submit_label": submit_label,
@@ -84,17 +90,25 @@ def dashboard(request):
 @login_required
 def shifts(request):
     require_capability(request.user, "shifts_view")
-    day = _selected_date(request)
+    today = timezone.localdate()
+    day = _calendar_date(request.GET.get("date")) or today
     start = day - timedelta(days=day.weekday())
     end = start + timedelta(days=14)
     entries = BroadcastShift.objects.filter(starts_at__gte=_aware_day(start), starts_at__lt=_aware_day(end)).select_related("employee").order_by("starts_at")
     days = []
     for offset in range(14):
         current = start + timedelta(days=offset)
-        days.append({"date": current, "is_today": current == timezone.localdate(), "shifts": [s for s in entries if timezone.localtime(s.starts_at).date() == current]})
+        days.append({
+            "date": current, "is_today": current == today, "is_selected": current == day,
+            "shifts": [s for s in entries if timezone.localtime(s.starts_at).date() == current],
+        })
     return render(request, "newsroom/shifts.html", {
         "page_title": "Расписание эфиров", "days": days, "start": start, "end": end - timedelta(days=1),
         "previous_date": start - timedelta(days=14), "next_date": end, "selected_date": day,
+        "archive_shortcuts": [
+            {"label": "Полгода назад", "date": _months_ago(today, 6)},
+            {"label": "Год назад", "date": _months_ago(today, 12)},
+        ],
     })
 
 
