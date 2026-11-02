@@ -54,10 +54,36 @@
     name.textContent = item.employee;
     entry.append(time, name);
     if (item.notes && item.notes.trim()) {
+      const disclosure = document.createElement('details');
+      disclosure.className = 'shift-note-disclosure';
+      disclosure.setAttribute('data-shift-note', '');
+      const trigger = document.createElement('summary');
+      trigger.className = 'shift-note-toggle';
+      trigger.textContent = 'Примечание';
+      trigger.setAttribute('aria-label', `Показать примечание к эфиру ${item.employee}`);
+      trigger.setAttribute('title', 'Примечание');
+      const popup = document.createElement('div');
+      popup.className = 'shift-note-popup';
+      popup.setAttribute('data-shift-note-popup', '');
+      popup.setAttribute('role', 'dialog');
+      popup.setAttribute('aria-label', 'Примечание к эфиру');
+      const header = document.createElement('div');
+      header.className = 'shift-note-header';
+      const title = document.createElement('span');
+      title.textContent = 'Примечание';
+      const closeButton = document.createElement('button');
+      closeButton.className = 'shift-note-close';
+      closeButton.setAttribute('type', 'button');
+      closeButton.setAttribute('data-shift-note-close', '');
+      closeButton.setAttribute('aria-label', 'Закрыть примечание');
+      closeButton.textContent = '×';
+      header.append(title, closeButton);
       const note = document.createElement('p');
       note.className = 'shift-note';
       note.textContent = item.notes;
-      entry.append(note);
+      popup.append(header, note);
+      disclosure.append(trigger, popup);
+      entry.append(disclosure);
     }
     if (item.isDraft) {
       const label = document.createElement('span');

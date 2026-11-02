@@ -11,7 +11,11 @@ const source = readFileSync(path.join(__dirname, '../static/js/shift_form.js'), 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
 class Element {
-  constructor() {
+  constructor(tagName = 'div') {
+    this.tagName = tagName.toUpperCase();
+    this.nodeType = 1;
+    this.open = false;
+    this.parentElement = null;
     this.children = [];
     this.className = '';
     this.hidden = false;
@@ -31,14 +35,24 @@ class Element {
   get textContent() { return this._text + this.children.map(child => child.textContent).join(''); }
   set textContent(value) { this._text = String(value); this.children = []; }
   set innerHTML(_value) { throw new Error('Preview content must use textContent, never HTML.'); }
-  append(...children) { this.children.push(...children); }
-  replaceChildren(...children) { this._text = ''; this.children = children; }
+  append(...children) { for (const child of children) child.parentElement = this; this.children.push(...children); }
+  replaceChildren(...children) { this._text = ''; this.children = []; this.append(...children); }
   setAttribute(name, value) { this.attributes[name] = value; }
   addEventListener(type, listener) { (this.listeners[type] ||= []).push(listener); }
   dispatch(type) { for (const listener of this.listeners[type] || []) listener({target: this}); }
 }
 
 const saved = (id, employee, start, end, notes = '') => ({id, employee, start_time: start, end_time: end, notes});
+
+const findWithin = (root, predicate) => {
+  if (predicate(root)) return root;
+  for (const child of root.children) {
+    const match = findWithin(child, predicate);
+    if (match) return match;
+  }
+  return undefined;
+};
+const noteOf = entry => findWithin(entry, child => child.tagName === 'P' && child.className === 'shift-note');
 
 function createHarness({shifts = [], date = '2026-11-02', editingId = '', initialJson, notes = '', employeeValue = '1'} = {}) {
   const employee = new Element();
@@ -73,7 +87,7 @@ function createHarness({shifts = [], date = '2026-11-02', editingId = '', initia
     document: {
       querySelector: selector => selector === '[data-shift-form]' ? form : selector === '[data-shift-day-schedule]' ? panel : null,
       getElementById: id => id === 'shift-day-schedule-data' ? embedded : null,
-      createElement: () => new Element(),
+      createElement: tagName => new Element(tagName),
     },
     window: {location: {origin: 'http://localhost:8000'}},
     fetch, AbortController, URL, Intl, Date,
@@ -205,10 +219,13 @@ test('multiline notes update live and remain literal text for saved, draft and f
     shifts: [saved(1, 'Утренний эфир', '08:00', '09:00', literal)],
     notes: 'Первый вопрос\nВторой вопрос',
   });
-  const noteOf = entry => entry.children.find(child => child.className === 'shift-note');
   assert.equal(noteOf(h.entries()[0]).textContent, literal);
+  assert.equal(noteOf(h.entries()[0]).parentElement.className, 'shift-note-popup');
+  assert.equal(noteOf(h.entries()[0]).parentElement.parentElement.tagName, 'DETAILS');
+  assert.equal(noteOf(h.entries()[0]).parentElement.parentElement.open, false, 'saved note text stays in a closed disclosure');
   assert.equal(noteOf(h.entries()[0]).children.length, 0, 'saved note markup is not interpreted');
   assert.equal(noteOf(h.drafts()[0]).textContent, 'Первый вопрос\nВторой вопрос');
+  assert.equal(noteOf(h.drafts()[0]).parentElement.parentElement.open, false, 'new draft note stays hidden until requested');
   h.change({notes: `  ${literal}  `});
   assert.equal(noteOf(h.drafts()[0]).textContent, literal, 'draft trims surrounding whitespace and retains line breaks');
   assert.equal(noteOf(h.drafts()[0]).children.length, 0, 'draft note markup is not interpreted');
@@ -225,7 +242,6 @@ test('empty notes add no blank paragraph and legacy saved entries without notes 
     {id: 1, employee: 'Прежний эфир', start_time: '08:00', end_time: '09:00'},
     saved(2, 'Без примечания', '12:00', '13:00', ' \n '),
   ]});
-  const noteOf = entry => entry.children.find(child => child.className === 'shift-note');
   assert.equal(h.entries().length, 3);
   assert.equal(h.entries().filter(noteOf).length, 0);
   h.change({notes: 'План эфира'});
@@ -250,7 +266,7 @@ test('a new form with no employee immediately shows one draft and edits complete
   assert.equal(draft.children[1].textContent, 'Мария Белова');
   assert.equal(draft.classList.contains('is-incomplete'), false);
   assert.equal(h.entries()[0], draft, 'completed preview moves to its chronological position');
-  assert.equal(draft.children.find(child => child.className === 'shift-note').textContent, 'Вопрос гостю\nМузыкальная пауза');
+  assert.equal(noteOf(draft).textContent, 'Вопрос гостю\nМузыкальная пауза');
   assert.equal(draft.children.find(child => child.className === 'shift-draft-badge').textContent, 'Новый эфир • Не сохранён');
   assert.equal(h.requests.length, 0);
 });
