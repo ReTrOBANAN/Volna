@@ -42,12 +42,6 @@ def _aware_day(day):
     return timezone.make_aware(datetime.combine(day, time.min))
 
 
-def _months_ago(day, months):
-    year, month = divmod(day.year * 12 + day.month - 1 - months, 12)
-    month += 1
-    return day.replace(year=year, month=month, day=min(day.day, calendar.monthrange(year, month)[1]))
-
-
 def _form_page(request, form, title, cancel_name, *, cancel_args=None, submit_label="Сохранить"):
     return render(request, "newsroom/form.html", {
         "form": form, "title": title, "page_title": title, "submit_label": submit_label,
@@ -105,10 +99,6 @@ def shifts(request):
     return render(request, "newsroom/shifts.html", {
         "page_title": "Расписание эфиров", "days": days, "start": start, "end": end - timedelta(days=1),
         "previous_date": start - timedelta(days=14), "next_date": end, "selected_date": day,
-        "archive_shortcuts": [
-            {"label": "Полгода назад", "date": _months_ago(today, 6)},
-            {"label": "Год назад", "date": _months_ago(today, 12)},
-        ],
     })
 
 

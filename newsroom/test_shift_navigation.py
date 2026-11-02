@@ -1,8 +1,8 @@
-"""Historical radio schedules are reachable by date and calendar-based shortcuts."""
+"""Historical radio schedules are reachable through the selected calendar date."""
 from datetime import date, datetime, time, timedelta
 from html.parser import HTMLParser
 from unittest.mock import patch
-from urllib.parse import parse_qs, urljoin, urlsplit
+from urllib.parse import urljoin, urlsplit
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
@@ -92,27 +92,21 @@ class ShiftArchiveNavigationTests(TestCase):
         parsed.feed(response.content.decode())
         return parsed
 
-    def destination(self, parsed, *, text=None, aria_label=None):
-        link = next(link for link in parsed.links if
-                    (text is not None and link['text'].strip() == text) or
-                    (aria_label is not None and link['attrs'].get('aria-label') == aria_label))
+    def destination(self, parsed, *, aria_label):
+        link = next(link for link in parsed.links if link['attrs'].get('aria-label') == aria_label)
         target = urljoin(self.url, link['attrs']['href'])
         self.assertEqual(urlsplit(target).path, self.url)
         return target
 
-    def test_half_year_and_year_links_open_actual_old_records_without_current_records(self):
-        past = [('Полгода назад', date(2026, 5, 3), 'Архив за полгода'),
-                ('Год назад', date(2025, 11, 3), 'Архив за прошлый год')]
+    def test_selected_old_dates_show_archive_records_without_current_records(self):
+        past = [(date(2026, 5, 3), 'Архив за полгода'),
+                (date(2025, 11, 3), 'Архив за прошлый год')]
         self.shift(self.today, 'Только текущий период')
-        for _, day, note in past:
+        for day, note in past:
             self.shift(day, note)
-        landing = self.client.get(self.url)
-        parsed = self.parse(landing)
-        for label, day, note in past:
-            with self.subTest(label=label):
-                target = self.destination(parsed, text=label)
-                self.assertEqual(parse_qs(urlsplit(target).query)['date'], [day.isoformat()])
-                response = self.client.get(target)
+        for day, note in past:
+            with self.subTest(day=day):
+                response = self.client.get(self.url, {'date': day.isoformat()})
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context['selected_date'], day)
                 self.assertContains(response, note)
@@ -186,25 +180,6 @@ class ShiftArchiveNavigationTests(TestCase):
         self.assertContains(response, '00:30')
         self.assertNotContains(response, 'До начала периода')
         self.assertNotContains(response, 'После конца периода')
-
-    def test_shortcuts_use_calendar_months_with_leap_day_clamping_and_year_rollover(self):
-        cases = [
-            (date(2024, 8, 31), date(2024, 2, 29), date(2023, 8, 31)),
-            (date(2025, 8, 31), date(2025, 2, 28), date(2024, 8, 31)),
-            (date(2024, 2, 29), date(2023, 8, 29), date(2023, 2, 28)),
-            (date(2026, 1, 31), date(2025, 7, 31), date(2025, 1, 31)),
-        ]
-        for today, half_year, year in cases:
-            with self.subTest(today=today):
-                self.localdate.return_value = today
-                response = self.client.get(self.url, {'date': '2001-07-19'})
-                self.assertEqual(response.status_code, 200)
-                dates = {item['label']: item['date'] for item in response.context['archive_shortcuts']}
-                self.assertEqual(dates, {'Полгода назад': half_year, 'Год назад': year})
-                parsed = self.parse(response)
-                for label, expected in dates.items():
-                    target = self.destination(parsed, text=label)
-                    self.assertEqual(parse_qs(urlsplit(target).query)['date'], [expected.isoformat()])
 
     def test_date_bounds_and_invalid_input_fall_back_to_the_frozen_local_day(self):
         for selected in ['1969-12-31', '2201-01-01', '2026-02-30', 'not-a-date', '']:
