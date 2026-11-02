@@ -1,11 +1,3 @@
 {% if note and note.strip %}
-<details class="shift-note-disclosure" data-shift-note>
-  <summary class="shift-note-toggle" aria-label="Показать примечание к эфиру {{ employee }}" title="Примечание">
-    <span>Примечание</span>
-  </summary>
-  <div class="shift-note-popup" data-shift-note-popup role="dialog" aria-label="Примечание к эфиру">
-    <div class="shift-note-header"><span>Примечание</span><button type="button" class="shift-note-close" data-shift-note-close aria-label="Закрыть примечание">×</button></div>
-    <p class="shift-note">{{ note }}</p>
-  </div>
-</details>
+<div class="shift-note-popup" data-shift-note-popup hidden role="tooltip"><p class="shift-note">{{ note }}</p></div>
 {% endif %}

@@ -1,35 +1,45 @@
 (() => {
   const entries = new WeakMap();
   let active = null;
+  let closeTimer;
   let nextId = 0;
 
-  const entryFor = details => {
-    if (!details) return null;
-    if (entries.has(details)) return entries.get(details);
-    const trigger = details.querySelector('summary');
-    const popup = details.querySelector('[data-shift-note-popup]');
+  const entryFor = card => {
+    if (!card) return null;
+    if (entries.has(card)) return entries.get(card);
+    const trigger = card.querySelector('[data-shift-note-trigger]');
+    const popup = card.querySelector('[data-shift-note-popup]');
     if (!trigger || !popup) return null;
     const enhanced = typeof popup.showPopover === 'function' && typeof popup.hidePopover === 'function';
     if (enhanced) popup.setAttribute('popover', 'manual');
     if (!popup.id) popup.id = `shift-note-popup-${++nextId}`;
     trigger.setAttribute('aria-controls', popup.id);
-    trigger.setAttribute('aria-expanded', String(details.open));
-    const entry = {details, trigger, popup, enhanced};
-    entries.set(details, entry);
+    const entry = {card, trigger, popup, enhanced, open: false};
+    entries.set(card, entry);
     return entry;
   };
 
+  const cancelClose = () => {
+    clearTimeout(closeTimer);
+    closeTimer = undefined;
+  };
+
+  const contains = (entry, target) => Boolean(target && (entry.card.contains(target) || entry.popup.contains(target)));
+
   const close = (entry, restoreFocus = false) => {
-    entry.details.open = false;
+    cancelClose();
+    entry.open = false;
     entry.trigger.setAttribute('aria-expanded', 'false');
+    entry.trigger.removeAttribute('aria-describedby');
     if (entry.enhanced && entry.popup.matches(':popover-open')) entry.popup.hidePopover();
+    entry.popup.hidden = true;
     if (active === entry) active = null;
     if (restoreFocus) entry.trigger.focus();
   };
 
   const position = entry => {
-    const trigger = entry.trigger.getBoundingClientRect();
-    const card = entry.details.closest('.shift-entry, .shift-day-item')?.getBoundingClientRect() || trigger;
+    entry.popup.style.position = 'fixed';
+    const card = entry.card.getBoundingClientRect();
     const popup = entry.popup.getBoundingClientRect();
     const edge = 12;
     const gap = 8;
@@ -38,9 +48,9 @@
     if (card.right + gap + popup.width <= window.innerWidth - edge) left = card.right + gap;
     else if (card.left - gap - popup.width >= edge) left = card.left - gap - popup.width;
     else {
-      left = trigger.right - popup.width;
-      top = trigger.bottom + gap;
-      if (top + popup.height > window.innerHeight - edge) top = trigger.top - popup.height - gap;
+      left = card.right - popup.width;
+      top = card.bottom + gap;
+      if (top + popup.height > window.innerHeight - edge) top = card.top - popup.height - gap;
     }
     left = Math.max(edge, Math.min(left, window.innerWidth - popup.width - edge));
     top = Math.max(edge, Math.min(top, window.innerHeight - popup.height - edge));
@@ -49,62 +59,71 @@
   };
 
   const open = entry => {
+    cancelClose();
     if (active && active !== entry) close(active);
-    entry.details.open = true;
+    entry.open = true;
     entry.trigger.setAttribute('aria-expanded', 'true');
+    entry.trigger.setAttribute('aria-describedby', entry.popup.id);
+    entry.popup.hidden = false;
     active = entry;
     if (entry.enhanced) {
       try {
         if (!entry.popup.matches(':popover-open')) entry.popup.showPopover({source: entry.trigger});
-        position(entry);
       } catch (_) {
         entry.enhanced = false;
         entry.popup.removeAttribute('popover');
       }
     }
-  };
-
-  const triggerEntry = target => {
-    const trigger = target?.closest?.('.shift-note-toggle');
-    const details = trigger?.closest('[data-shift-note]');
-    return details && details.querySelector('summary') === trigger ? entryFor(details) : null;
+    position(entry);
   };
 
   document.addEventListener('click', event => {
-    const closeButton = event.target?.closest?.('[data-shift-note-close]');
-    if (closeButton) {
-      const entry = entryFor(closeButton.closest('[data-shift-note]'));
-      if (entry) { event.preventDefault(); close(entry, true); }
-      return;
-    }
-    const entry = triggerEntry(event.target);
+    if (active && active.popup.contains(event.target)) return;
+    const card = event.target?.closest?.('[data-shift-note]');
+    const control = event.target?.closest?.('a, button, input, select, textarea, summary, form, [data-shift-actions], [contenteditable]');
+    const entry = card && !control ? entryFor(card) : null;
     if (entry) {
       event.preventDefault();
-      if (entry.details.open) close(entry);
+      if (entry.open) close(entry);
       else open(entry);
-      return;
-    }
-    if (active && !active.details.contains(event.target)) close(active);
+    } else if (active) close(active);
   });
 
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && active) {
       event.preventDefault();
       close(active, true);
-    } else if (event.key === 'ArrowDown') {
-      const entry = triggerEntry(event.target);
-      if (!entry) return;
+    } else if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+      const trigger = event.target?.closest?.('[data-shift-note-trigger]');
+      const entry = entryFor(trigger?.closest('[data-shift-note]'));
+      if (!entry || trigger !== entry.trigger) return;
       event.preventDefault();
-      open(entry);
-      entry.popup.querySelector('[data-shift-note-close]')?.focus();
+      if (entry.open) close(entry);
+      else open(entry);
     }
   });
-  document.addEventListener('focusin', event => {
-    if (active && !active.details.contains(event.target)) close(active);
+
+  document.addEventListener('pointerout', event => {
+    if (!active || event.pointerType === 'touch' || !contains(active, event.target) || contains(active, event.relatedTarget)) return;
+    cancelClose();
+    const entry = active;
+    // Allow the cursor to cross the small gap between the shift and its note.
+    closeTimer = setTimeout(() => { if (active === entry) close(entry); }, 150);
   });
+  document.addEventListener('pointerover', event => {
+    if (active && contains(active, event.target)) cancelClose();
+  });
+  document.addEventListener('focusin', event => {
+    if (active && !contains(active, event.target)) close(active);
+  });
+  document.addEventListener('focusout', event => {
+    // Clicking note text can blur the card without focusing another element.
+    if (active && event.relatedTarget && contains(active, event.target) && !contains(active, event.relatedTarget)) close(active);
+  });
+  window.addEventListener('blur', () => { if (active) close(active); });
   window.addEventListener('resize', () => { if (active) close(active); });
   window.addEventListener('scroll', event => {
-    if (active && event.target?.closest && active.popup.contains(event.target)) return;
+    if (active && event.target?.nodeType && active.popup.contains(event.target)) return;
     if (active) close(active);
   }, true);
 })();

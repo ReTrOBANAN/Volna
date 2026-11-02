@@ -1,4 +1,4 @@
-"""Notes remain readable as literal text inside closed shift disclosures."""
+"""Card-triggered note tooltips keep plain text safe and hidden until requested."""
 from datetime import date, datetime, time, timedelta
 from html.parser import HTMLParser
 from zoneinfo import ZoneInfo
@@ -84,7 +84,7 @@ class ShiftNotePopupTests(TestCase):
         return [(index, node) for index, node in enumerate(parsed.nodes)
                 if node['tag'] == 'p' and 'shift-note' in node['attrs'].get('class', '').split()]
 
-    def test_notes_are_inside_closed_accessible_disclosure_and_blank_notes_have_no_control(self):
+    def test_notes_use_accessible_card_trigger_and_hidden_tooltip_without_extra_buttons(self):
         note = 'Вопросы гостю\nВключить запись интервью после новостей.'
         self.shift(note)
         self.shift('', hour=12)
@@ -92,28 +92,35 @@ class ShiftNotePopupTests(TestCase):
         response = self.client.get(self.calendar_url, {'date': self.day.isoformat()})
         self.assertEqual(response.status_code, 200)
         parsed = self.parsed(response)
-        disclosures = parsed.marked('data-shift-note')
-        self.assertEqual(len(disclosures), 1)
-        details_index, details = disclosures[0]
-        self.assertEqual(details['tag'], 'details')
-        self.assertNotIn('open', details['attrs'])
-        summaries = [(index, node) for index, node in enumerate(parsed.nodes)
-                     if node['tag'] == 'summary' and parsed.within(index, details_index)]
-        self.assertEqual(len(summaries), 1)
-        self.assertEqual(summaries[0][1]['text'].strip(), 'Примечание')
+        cards = parsed.marked('data-shift-note')
+        self.assertEqual(len(cards), 1, 'blank or whitespace-only notes do not make a card interactive')
+        card_index, card = cards[0]
+        self.assertEqual(card['tag'], 'div')
+        self.assertIn('shift-entry', card['attrs']['class'].split())
+        triggers = parsed.marked('data-shift-note-trigger')
+        self.assertEqual(len(triggers), 1)
+        trigger_index, trigger = triggers[0]
+        self.assertEqual(trigger['tag'], 'div')
+        self.assertTrue(parsed.within(trigger_index, card_index))
+        self.assertEqual(trigger['attrs']['role'], 'button')
+        self.assertEqual(trigger['attrs']['tabindex'], '0')
+        self.assertEqual(trigger['attrs']['aria-expanded'], 'false')
+        self.assertIn('Показать', trigger['attrs']['aria-label'])
+        self.assertIn(self.reporter.first_name, trigger['text'])
+        self.assertNotIn(note, trigger['text'], 'the note is not shown as inline card content')
         popups = parsed.marked('data-shift-note-popup')
         self.assertEqual(len(popups), 1)
         popup_index, popup = popups[0]
-        self.assertTrue(parsed.within(popup_index, details_index))
-        self.assertEqual(popup['attrs']['role'], 'dialog')
-        self.assertTrue(popup['attrs']['aria-label'])
-        closers = parsed.marked('data-shift-note-close')
-        self.assertEqual(len(closers), 1)
-        self.assertTrue(parsed.within(closers[0][0], popup_index))
-        self.assertEqual(closers[0][1]['attrs']['type'], 'button')
+        self.assertTrue(parsed.within(popup_index, card_index))
+        self.assertEqual(popup['parent'], trigger['parent'], 'content trigger and popup are sibling elements')
+        self.assertEqual(popup['attrs']['role'], 'tooltip')
+        self.assertIn('hidden', popup['attrs'])
+        self.assertEqual(parsed.marked('data-shift-note-close'), [])
+        self.assertNotContains(response, 'shift-note-toggle')
+        self.assertNotContains(response, 'shift-note-header')
         paragraphs = self.note_paragraphs(parsed)
         self.assertEqual(len(paragraphs), 1)
-        self.assertTrue(parsed.within(paragraphs[0][0], popup_index), 'note text is not shown inline on the shift card')
+        self.assertTrue(parsed.within(paragraphs[0][0], popup_index))
         self.assertEqual(paragraphs[0][1]['text'], note)
 
     def test_reporter_can_read_note_popup_without_receiving_edit_controls(self):
@@ -147,8 +154,11 @@ class ShiftNotePopupTests(TestCase):
         self.assertEqual(len(popups), 2)
         for paragraph_index, _ in self.note_paragraphs(parsed):
             self.assertTrue(any(parsed.within(paragraph_index, popup_index) for popup_index, _ in popups))
-        for _, details in parsed.marked('data-shift-note'):
-            self.assertNotIn('open', details['attrs'])
+        for _, popup in popups:
+            self.assertIn('hidden', popup['attrs'])
+            self.assertEqual(popup['attrs']['role'], 'tooltip')
+        self.assertEqual(len(parsed.marked('data-shift-note-trigger')), 2)
+        self.assertEqual(parsed.marked('data-shift-note-close'), [])
         self.assertNotContains(response, '<img src=x onerror=alert(1)>')
         self.assertNotContains(response, '<script>alert("notes-popup")</script>')
         self.assertEqual(BroadcastShift.objects.count(), 1)

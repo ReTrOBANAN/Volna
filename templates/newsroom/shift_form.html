@@ -40,18 +40,24 @@
       <button type="button" class="button button-secondary button-small shift-day-retry" data-shift-day-retry hidden>Повторить загрузку</button>
       <ol class="shift-day-list" data-shift-day-list>
         {% for shift in day_schedule %}
-        <li class="shift-day-item">
+        <li class="shift-day-item"{% if shift.notes and shift.notes.strip %} data-shift-note{% endif %}>
+          {% if shift.notes and shift.notes.strip %}<div class="shift-note-trigger" data-shift-note-trigger role="button" tabindex="0" aria-expanded="false" aria-label="Показать примечание к эфиру {{ shift.employee }}">{% endif %}
           <span class="shift-day-time">{{ shift.start_time }} <span aria-hidden="true">—</span> {{ shift.end_time }}</span>
           <strong>{{ shift.employee }}</strong>
-          {% include 'newsroom/partials/shift_note.html' with note=shift.notes employee=shift.employee only %}
+          {% if shift.notes and shift.notes.strip %}</div>{% endif %}
+          {% include 'newsroom/partials/shift_note.html' with note=shift.notes only %}
         </li>
         {% empty %}<li class="shift-day-empty">На выбранную дату эфиров пока нет.</li>{% endfor %}
-        <li class="shift-day-item is-draft is-incomplete">
+        {% with note=form.notes.value %}
+        <li class="shift-day-item is-draft is-incomplete"{% if note and note.strip %} data-shift-note{% endif %}>
+          {% if note and note.strip %}<div class="shift-note-trigger" data-shift-note-trigger role="button" tabindex="0" aria-expanded="false" aria-label="Показать примечание к эфиру {{ draft_employee }}">{% endif %}
           <span class="shift-day-time">{{ draft_start_time }} — {{ draft_end_time }}</span>
           <strong>{{ draft_employee }}</strong>
-          {% include 'newsroom/partials/shift_note.html' with note=form.notes.value employee=draft_employee only %}
           <span class="shift-draft-badge">Предпросмотр • Не сохранён</span>
+          {% if note and note.strip %}</div>{% endif %}
+          {% include 'newsroom/partials/shift_note.html' with note=note only %}
         </li>
+        {% endwith %}
       </ol>
       <noscript><p class="shift-schedule-note">Без JavaScript показаны сохранённые эфиры на дату открытия формы. Чтобы выбрать другой день, вернитесь в календарь и откройте его дату.</p></noscript>
       <p class="shift-schedule-note">Изменения в форме появятся в расписании после сохранения.</p>
@@ -59,6 +65,6 @@
   </aside>
 </div>
 {{ day_schedule|json_script:"shift-day-schedule-data" }}
-<script defer src="{% static 'js/shift_notes.js' %}"></script>
-<script defer src="{% static 'js/shift_form.js' %}?v=20261103-notes"></script>
+<script defer src="{% static 'js/shift_notes.js' %}?v=20261103-card-notes"></script>
+<script defer src="{% static 'js/shift_form.js' %}?v=20261103-card-notes"></script>
 {% endblock %}

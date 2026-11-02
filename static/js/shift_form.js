@@ -52,45 +52,35 @@
     time.textContent = `${item.start_time || '--:--'} — ${item.end_time || '--:--'}`;
     const name = document.createElement('strong');
     name.textContent = item.employee;
-    entry.append(time, name);
+    let content = entry;
     if (item.notes && item.notes.trim()) {
-      const disclosure = document.createElement('details');
-      disclosure.className = 'shift-note-disclosure';
-      disclosure.setAttribute('data-shift-note', '');
-      const trigger = document.createElement('summary');
-      trigger.className = 'shift-note-toggle';
-      trigger.textContent = 'Примечание';
+      entry.setAttribute('data-shift-note', '');
+      const trigger = document.createElement('div');
+      trigger.className = 'shift-note-trigger';
+      trigger.setAttribute('data-shift-note-trigger', '');
+      trigger.setAttribute('role', 'button');
+      trigger.setAttribute('tabindex', '0');
+      trigger.setAttribute('aria-expanded', 'false');
       trigger.setAttribute('aria-label', `Показать примечание к эфиру ${item.employee}`);
-      trigger.setAttribute('title', 'Примечание');
+      trigger.append(time, name);
+      content = trigger;
       const popup = document.createElement('div');
       popup.className = 'shift-note-popup';
       popup.setAttribute('data-shift-note-popup', '');
-      popup.setAttribute('role', 'dialog');
-      popup.setAttribute('aria-label', 'Примечание к эфиру');
-      const header = document.createElement('div');
-      header.className = 'shift-note-header';
-      const title = document.createElement('span');
-      title.textContent = 'Примечание';
-      const closeButton = document.createElement('button');
-      closeButton.className = 'shift-note-close';
-      closeButton.setAttribute('type', 'button');
-      closeButton.setAttribute('data-shift-note-close', '');
-      closeButton.setAttribute('aria-label', 'Закрыть примечание');
-      closeButton.textContent = '×';
-      header.append(title, closeButton);
+      popup.setAttribute('role', 'tooltip');
+      popup.hidden = true;
       const note = document.createElement('p');
       note.className = 'shift-note';
       note.textContent = item.notes;
-      popup.append(header, note);
-      disclosure.append(trigger, popup);
-      entry.append(disclosure);
-    }
+      popup.append(note);
+      entry.append(trigger, popup);
+    } else entry.append(time, name);
     if (item.isDraft) {
       const label = document.createElement('span');
       label.className = 'shift-draft-badge';
       label.textContent = item.hasInvalidTime ? 'Предпросмотр • Проверьте время'
         : item.isIncomplete ? 'Предпросмотр • Не сохранён' : draftLabel;
-      entry.append(label);
+      content.append(label);
     }
     return entry;
   };

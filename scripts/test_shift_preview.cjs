@@ -37,7 +37,7 @@ class Element {
   set innerHTML(_value) { throw new Error('Preview content must use textContent, never HTML.'); }
   append(...children) { for (const child of children) child.parentElement = this; this.children.push(...children); }
   replaceChildren(...children) { this._text = ''; this.children = []; this.append(...children); }
-  setAttribute(name, value) { this.attributes[name] = value; }
+  setAttribute(name, value) { this.attributes[name] = String(value); if (name === 'hidden') this.hidden = true; }
   addEventListener(type, listener) { (this.listeners[type] ||= []).push(listener); }
   dispatch(type) { for (const listener of this.listeners[type] || []) listener({target: this}); }
 }
@@ -53,6 +53,9 @@ const findWithin = (root, predicate) => {
   return undefined;
 };
 const noteOf = entry => findWithin(entry, child => child.tagName === 'P' && child.className === 'shift-note');
+const nameOf = entry => findWithin(entry, child => child.tagName === 'STRONG');
+const timeOf = entry => findWithin(entry, child => child.className.split(' ').includes('shift-day-time'));
+const badgeOf = entry => findWithin(entry, child => child.className === 'shift-draft-badge');
 
 function createHarness({shifts = [], date = '2026-11-02', editingId = '', initialJson, notes = '', employeeValue = '1'} = {}) {
   const employee = new Element();
@@ -109,11 +112,11 @@ function createHarness({shifts = [], date = '2026-11-02', editingId = '', initia
 
 test('employee and time edits immediately update a single chronologically placed unsaved draft', () => {
   const h = createHarness({shifts: [saved(1, 'Ранний эфир', '08:00', '09:00'), saved(2, 'Поздний эфир', '12:00', '13:00')]});
-  assert.deepEqual(h.entries().map(entry => entry.children[1].textContent), ['Ранний эфир', 'Анна Волкова', 'Поздний эфир']);
+  assert.deepEqual(h.entries().map(entry => nameOf(entry).textContent), ['Ранний эфир', 'Анна Волкова', 'Поздний эфир']);
   assert.match(h.drafts()[0].textContent, /Новый эфир.*Не сохранён/);
   h.change({employee: '2', start_time: '07:00', end_time: '08:00'}, 'change');
   assert.equal(h.drafts().length, 1);
-  assert.equal(h.entries()[0].children[1].textContent, 'Мария Белова');
+  assert.equal(nameOf(h.entries()[0]).textContent, 'Мария Белова');
   assert.match(h.entries()[0].textContent, /07:00 — 08:00/);
   assert.equal(h.requests.length, 0, 'same-date input changes must not refetch saved entries');
 });
@@ -130,10 +133,10 @@ test('missing or invalid intervals remain incomplete previews while saved entrie
     h.change(values);
     assert.equal(h.drafts().length, 1, 'incomplete input keeps a live draft visible');
     assert.equal(h.drafts()[0].classList.contains('is-incomplete'), true);
-    const badge = h.drafts()[0].children.find(child => child.className === 'shift-draft-badge');
+    const badge = badgeOf(h.drafts()[0]);
     assert.match(badge.textContent, /^Предпросмотр/);
     assert.equal(h.entries().length, 2, 'saved entries remain alongside the incomplete preview');
-    assert.equal(h.entries().filter(entry => !entry.classList.contains('is-draft'))[0].children[1].textContent, 'Сохранённый эфир');
+    assert.equal(nameOf(h.entries().filter(entry => !entry.classList.contains('is-draft'))[0]).textContent, 'Сохранённый эфир');
   }
 });
 
@@ -154,7 +157,7 @@ test('date edits fetch the selected date and exclude the edited saved shift', as
   assert.equal(h.entries().length, 1, 'stale saved entries disappear while loading; draft stays');
   await h.respond(0, '2026-11-03', [saved(9, 'Новый день', '07:00', '09:00')]);
   assert.equal(h.panel.attributes['aria-busy'], 'false');
-  assert.equal(h.entries()[0].children[1].textContent, 'Новый день');
+  assert.equal(nameOf(h.entries()[0]).textContent, 'Новый день');
   assert.equal(h.parts.status.textContent, 'Всего эфиров: 1');
   assert.match(h.parts.label.textContent, /3 ноября/);
 });
@@ -221,11 +224,19 @@ test('multiline notes update live and remain literal text for saved, draft and f
   });
   assert.equal(noteOf(h.entries()[0]).textContent, literal);
   assert.equal(noteOf(h.entries()[0]).parentElement.className, 'shift-note-popup');
-  assert.equal(noteOf(h.entries()[0]).parentElement.parentElement.tagName, 'DETAILS');
-  assert.equal(noteOf(h.entries()[0]).parentElement.parentElement.open, false, 'saved note text stays in a closed disclosure');
+  assert.equal(noteOf(h.entries()[0]).parentElement.parentElement, h.entries()[0]);
+  assert.equal(noteOf(h.entries()[0]).parentElement.hidden, true, 'saved note text starts in a hidden popup');
+  assert.equal(noteOf(h.entries()[0]).parentElement.attributes.role, 'tooltip');
+  assert.equal(h.entries()[0].attributes['data-shift-note'], '');
+  const noteTrigger = findWithin(h.entries()[0], child => 'data-shift-note-trigger' in child.attributes);
+  assert.equal(noteTrigger.attributes.role, 'button');
+  assert.equal(noteTrigger.attributes.tabindex, '0');
+  assert.equal(noteTrigger.attributes['aria-expanded'], 'false');
+  assert.equal(findWithin(h.entries()[0], child => child.tagName === 'SUMMARY' || child.tagName === 'DETAILS'), undefined);
+  assert.equal(findWithin(h.entries()[0], child => 'data-shift-note-close' in child.attributes), undefined);
   assert.equal(noteOf(h.entries()[0]).children.length, 0, 'saved note markup is not interpreted');
   assert.equal(noteOf(h.drafts()[0]).textContent, 'Первый вопрос\nВторой вопрос');
-  assert.equal(noteOf(h.drafts()[0]).parentElement.parentElement.open, false, 'new draft note stays hidden until requested');
+  assert.equal(noteOf(h.drafts()[0]).parentElement.hidden, true, 'new draft note stays hidden until requested');
   h.change({notes: `  ${literal}  `});
   assert.equal(noteOf(h.drafts()[0]).textContent, literal, 'draft trims surrounding whitespace and retains line breaks');
   assert.equal(noteOf(h.drafts()[0]).children.length, 0, 'draft note markup is not interpreted');
@@ -244,6 +255,10 @@ test('empty notes add no blank paragraph and legacy saved entries without notes 
   ]});
   assert.equal(h.entries().length, 3);
   assert.equal(h.entries().filter(noteOf).length, 0);
+  for (const entry of h.entries()) {
+    assert.equal(entry.attributes['data-shift-note'], undefined);
+    assert.equal(findWithin(entry, child => 'data-shift-note-trigger' in child.attributes), undefined);
+  }
   h.change({notes: 'План эфира'});
   assert.equal(noteOf(h.drafts()[0]).textContent, 'План эфира');
   h.change({notes: ' \n '});
@@ -256,18 +271,18 @@ test('a new form with no employee immediately shows one draft and edits complete
   const h = createHarness({employeeValue: '', shifts: [saved(1, 'Сохранённый эфир', '08:00', '09:00')]});
   assert.equal(h.drafts().length, 1);
   let draft = h.drafts()[0];
-  assert.equal(draft.children[1].textContent, 'Новый эфир');
-  assert.equal(draft.children[0].textContent, '10:00 — 11:00');
+  assert.equal(nameOf(draft).textContent, 'Новый эфир');
+  assert.equal(timeOf(draft).textContent, '10:00 — 11:00');
   assert.equal(draft.classList.contains('is-incomplete'), true);
-  assert.equal(draft.children.find(child => child.className === 'shift-draft-badge').textContent, 'Предпросмотр • Не сохранён');
+  assert.equal(badgeOf(draft).textContent, 'Предпросмотр • Не сохранён');
   h.change({employee: '2', start_time: '07:00', end_time: '08:00', notes: 'Вопрос гостю\nМузыкальная пауза'}, 'change');
   assert.equal(h.drafts().length, 1);
   draft = h.drafts()[0];
-  assert.equal(draft.children[1].textContent, 'Мария Белова');
+  assert.equal(nameOf(draft).textContent, 'Мария Белова');
   assert.equal(draft.classList.contains('is-incomplete'), false);
   assert.equal(h.entries()[0], draft, 'completed preview moves to its chronological position');
   assert.equal(noteOf(draft).textContent, 'Вопрос гостю\nМузыкальная пауза');
-  assert.equal(draft.children.find(child => child.className === 'shift-draft-badge').textContent, 'Новый эфир • Не сохранён');
+  assert.equal(badgeOf(draft).textContent, 'Новый эфир • Не сохранён');
   assert.equal(h.requests.length, 0);
 });
 
@@ -276,13 +291,13 @@ test('missing times use neutral placeholders, sort last, and never appear as a v
   h.change({start_time: '25:00', end_time: ''});
   assert.equal(h.drafts().length, 1);
   const draft = h.drafts()[0];
-  assert.equal(draft.children[0].textContent, '--:-- — --:--');
-  assert.equal(draft.children[1].textContent, 'Изменяемый эфир');
+  assert.equal(timeOf(draft).textContent, '--:-- — --:--');
+  assert.equal(nameOf(draft).textContent, 'Изменяемый эфир');
   assert.equal(draft.classList.contains('is-incomplete'), true);
   assert.equal(h.entries().at(-1), draft);
   h.change({employee: '1', start_time: '13:00', end_time: '12:00'});
   assert.equal(h.drafts().length, 1);
-  assert.equal(h.drafts()[0].children.find(child => child.className === 'shift-draft-badge').textContent, 'Предпросмотр • Проверьте время');
+  assert.equal(badgeOf(h.drafts()[0]).textContent, 'Предпросмотр • Проверьте время');
   h.change({date: '2026-02-30'});
   assert.equal(h.drafts().length, 0, 'an invalid day cannot host a preview');
   assert.equal(h.entries().length, 0);
