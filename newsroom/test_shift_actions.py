@@ -120,4 +120,4 @@ class ShiftActionMenuTests(TestCase):
         response = client.post(reverse('newsroom:shift_delete', args=[self.entry.pk]), {'csrfmiddlewaretoken': token}, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(BroadcastShift.objects.filter(pk=self.entry.pk).exists())
-        self.assertContains(response, 'Эфир удалён.')
+        self.assertNotContains(response, 'Эфир удалён.')

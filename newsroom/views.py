@@ -145,7 +145,6 @@ def shift_create(request, pk=None):
             entry.created_by = request.user
         entry.full_clean()
         entry.save()
-        messages.success(request, "Эфир сохранён.")
         saved_day = timezone.localtime(entry.starts_at).date()
         return_day = period_start if explicit_period and period_start <= saved_day < period_start + timedelta(days=14) else saved_day
         return redirect(f"{reverse('newsroom:shifts')}?date={return_day.isoformat()}")
@@ -169,7 +168,6 @@ def shift_create(request, pk=None):
 def shift_delete(request, pk):
     require_capability(request.user, "shifts_manage")
     get_object_or_404(BroadcastShift, pk=pk).delete()
-    messages.success(request, "Эфир удалён.")
     return redirect("newsroom:shifts")
 
 
@@ -212,7 +210,6 @@ def booking_create(request, pk=None):
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            messages.success(request, "Бронирование сохранено.")
             return redirect("newsroom:booking_detail", pk=booking.pk)
     return _form_page(request, form, "Изменить бронирование" if pk else "Забронировать студию", "bookings")
 
@@ -253,8 +250,6 @@ def booking_action(request, pk):
             raise ValidationError("Неизвестное действие.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    else:
-        messages.success(request, "Бронирование обновлено.")
     return redirect("newsroom:booking_detail", pk=pk)
 
 
@@ -301,7 +296,6 @@ def event_create(request, pk=None):
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            messages.success(request, "Инфоповод сохранён.")
             return redirect("newsroom:event_detail", pk=event.pk)
     return _form_page(request, form, "Изменить инфоповод" if pk else "Новый инфоповод", "events")
 
@@ -348,8 +342,6 @@ def event_action(request, pk):
             services.transition_event(request.user, event, action)
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    else:
-        messages.success(request, "Этап сохранён.")
     return redirect("newsroom:event_detail", pk=pk)
 
 
@@ -376,7 +368,6 @@ def file_upload(request):
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            messages.success(request, "Файл загружен.")
             if item.event_id:
                 return redirect("newsroom:event_detail", pk=item.event_id)
             return redirect("newsroom:files")
@@ -408,8 +399,6 @@ def file_delete(request, pk):
         services.delete_upload(request.user, item)
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    else:
-        messages.success(request, "Файл удалён.")
     return redirect("newsroom:files")
 
 
@@ -441,7 +430,6 @@ def proposal_create(request):
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            messages.success(request, "Предложение отправлено на рассмотрение.")
             return redirect("newsroom:proposal_detail", pk=proposal.pk)
     return _form_page(request, form, "Новое предложение", "proposals", submit_label="Отправить предложение")
 
@@ -469,8 +457,6 @@ def proposal_review(request, pk):
         services.review_proposal(request.user, proposal, decision == "approve")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    else:
-        messages.success(request, "Решение по предложению сохранено.")
     return redirect("newsroom:proposal_detail", pk=pk)
 
 
@@ -505,7 +491,6 @@ def employee_create(request, pk=None):
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            messages.success(request, "Аккаунт сотрудника сохранён.")
             return redirect("newsroom:employees")
     return _form_page(request, form, "Изменить сотрудника" if pk else "Новый сотрудник", "employees")
 
@@ -515,7 +500,6 @@ def profile(request):
     form = ProfileForm(request.POST or None, instance=request.user)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Профиль обновлён.")
         return redirect("newsroom:profile")
     return render(request, "newsroom/profile.html", {"page_title": "Настройки профиля", "form": form})
 
@@ -526,7 +510,6 @@ def password_change(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         update_session_auth_hash(request, user)
-        messages.success(request, "Пароль изменён.")
         return redirect("newsroom:profile")
     return _form_page(request, form, "Изменить пароль", "profile", submit_label="Изменить пароль")
 

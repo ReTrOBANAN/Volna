@@ -85,28 +85,3 @@
   .shift-day-body { padding: 19px; }
 }
 @media (forced-colors: active) { .shift-form-card select#id_employee { appearance: auto; -webkit-appearance: auto; background-image: none; } }
-
-.toast-region { position: fixed; top: 96px; right: 24px; z-index: 100; width: min(360px, calc(100vw - 32px)); max-height: calc(100dvh - 120px); display: flex; flex-direction: column; gap: 10px; pointer-events: none; overflow: visible; }
-.toast { --toast-accent: #548475; display: flex; align-items: flex-start; gap: 12px; flex-shrink: 0; min-height: 62px; padding: 16px 13px 16px 15px; border: 1px solid #e2eae6; border-left: 3px solid var(--toast-accent); border-radius: 9px; background: #fff; color: #52635c; box-shadow: 0 8px 26px #254b3820, 0 2px 6px #254b3808; pointer-events: auto; opacity: 1; transform: translateX(0); transition: transform 360ms cubic-bezier(.22,.8,.3,1), opacity 250ms ease; }
-.toast.is-entering { opacity: 0; transform: translateX(calc(100% + 48px)); transition: none; }
-.toast.is-visible { opacity: 1; transform: translateX(0); }
-.toast.is-leaving { opacity: 0; transform: translateX(calc(100% + 48px)); pointer-events: none; }
-.toast-icon { flex-shrink: 0; width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; background: #edf5f0; color: var(--toast-accent); font-size: 12px; font-weight: 650; line-height: 1; }
-.toast-message { flex: 1; min-width: 0; font-size: 13px; line-height: 1.7; padding-top: 1px; overflow-wrap: anywhere; white-space: pre-line; }
-.toast-close { display: grid; place-items: center; flex-shrink: 0; width: 25px; height: 25px; padding: 0; border: 0; border-radius: 4px; color: #9ba7a0; background: transparent; font-size: 21px; line-height: 1; }
-.toast-close:hover { color: #657c6e; background: #f1f5f2; }
-.toast-close:focus-visible { outline: 2px solid #83b9ac; outline-offset: 2px; }
-.toast-info { --toast-accent: #6b8caa; }
-.toast-info .toast-icon { background: #eff4f9; }
-.toast-warning { --toast-accent: #b28f58; }
-.toast-warning .toast-icon { background: #fcf6eb; }
-.toast-error { --toast-accent: #b47676; }
-.toast-error .toast-icon { background: #fcf0f0; }
-@media (max-width: 760px) {
-  .toast-region { top: 80px; right: 16px; width: calc(100vw - 32px); max-height: calc(100dvh - 96px); }
-  .toast { min-height: 60px; padding: 14px 11px 14px 13px; gap: 10px; }
-  .toast-close { width: 28px; height: 28px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .toast, .toast.is-entering, .toast.is-visible, .toast.is-leaving { transform: none; transition: none; }
-}

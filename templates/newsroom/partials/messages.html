@@ -1,0 +1,5 @@
+{% for message in messages %}
+  {% if message.level >= 30 %}
+  <div class="message {% if message.level >= 40 %}message-error{% else %}message-warning{% endif %}" role="alert">{{ message }}</div>
+  {% endif %}
+{% endfor %}
