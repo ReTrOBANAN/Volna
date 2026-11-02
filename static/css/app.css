@@ -36,6 +36,20 @@
 .shift-day-item strong { display: block; color: #53665c; font-weight: 550; font-size: 13px; overflow-wrap: anywhere; margin-top: 5px; }
 .shift-note { margin: 9px 0 0; color: #6b8076; font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 .shift-entry .shift-note { font-size: 11px; margin-top: 7px; }
+.shift-entry { position: relative; }
+.shift-entry .shift-employee { padding-right: 28px; }
+.shift-actions-toggle { position: absolute; top: 5px; right: 4px; width: 24px; height: 24px; display: grid; place-items: center; padding: 3px; border-radius: 4px; color: #7e9689; cursor: pointer; list-style: none; }
+.shift-actions-toggle::-webkit-details-marker { display: none; }
+.shift-actions-toggle svg { display: block; }
+.shift-actions-toggle:hover, .shift-actions[open] .shift-actions-toggle { background: #e5eee8; color: #476d59; }
+.shift-actions-toggle:focus-visible { outline: 2px solid #83b9ac; outline-offset: 2px; }
+.shift-actions-menu { margin-top: 8px; padding: 5px; border: 1px solid #dfe8e2; border-radius: 7px; background: #fff; color: #5e7567; box-shadow: 0 5px 18px #254b3814; }
+.shift-actions-menu[popover] { position: fixed; inset: auto; margin: 0; width: 156px; max-width: calc(100vw - 16px); }
+.shift-actions-menu a, .shift-actions-menu button { display: flex; align-items: center; width: 100%; min-height: 34px; gap: 8px; padding: 8px 10px; border: 0; border-radius: 4px; background: transparent; color: #5e7567; font-size: 12px; font-weight: 500; line-height: 1.5; text-align: left; white-space: nowrap; }
+.shift-actions-menu a:hover, .shift-actions-menu button:hover { background: #f1f6f2; color: #315d43; }
+.shift-actions-menu .shift-actions-delete { color: #b06b6b; }
+.shift-actions-menu .shift-actions-delete:hover { background: #fcf0f0; color: #9a5353; }
+.shift-actions-menu a:focus-visible, .shift-actions-menu button:focus-visible { outline: 2px solid #83b9ac; outline-offset: -1px; }
 .shift-day-time { display: block; font-variant-numeric: tabular-nums; color: #85998e; font-size: 12px; }
 .shift-day-item.is-draft { border-color: #94bbab; border-left-color: var(--green); background: var(--green-light); }
 .shift-day-item.is-draft .shift-day-time, .shift-day-item.is-draft strong { color: var(--green-dark); }

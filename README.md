@@ -78,10 +78,10 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
-При наличии Node.js можно отдельно проверить динамический предпросмотр эфиров и всплывающие сообщения:
+При наличии Node.js можно отдельно проверить предпросмотр эфиров, всплывающие сообщения и меню действий:
 
 ```bash
-node --test scripts/test_shift_preview.cjs scripts/test_toasts.cjs
+node --test scripts/test_shift_preview.cjs scripts/test_toasts.cjs scripts/test_shift_actions.cjs
 ```
 
 Для запуска самого приложения Node.js не требуется.
