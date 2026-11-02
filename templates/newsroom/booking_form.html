@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">СТУДИИ / РАСПИСАНИЕ</span><h1>{{ title }}</h1><p class="muted">Укажите студию, ответственного и время записи.</p></div>
+  <a class="card-link" href="{{ cancel_url }}">К расписанию ↗</a>
+</div>
+<div class="shift-editor-layout booking-editor-layout">
+  <section class="card form-card shift-form-card booking-form-card">
+    <form method="post" class="editor-form" data-booking-form>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="message message-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% include 'newsroom/partials/form_field.html' with field=form.studio %}
+      {% include 'newsroom/partials/form_field.html' with field=form.title %}
+      {% include 'newsroom/partials/form_field.html' with field=form.kind %}
+      {% include 'newsroom/partials/form_field.html' with field=form.responsible %}
+      {% include 'newsroom/partials/form_field.html' with field=form.date %}
+      <fieldset class="shift-time-range">
+        <legend>Время записи</legend>
+        <div class="shift-time-inputs">
+          {% include 'newsroom/partials/form_field.html' with field=form.start_time %}
+          <span class="shift-time-divider" aria-hidden="true">→</span>
+          {% include 'newsroom/partials/form_field.html' with field=form.end_time %}
+        </div>
+      </fieldset>
+      <details class="booking-end-date"{% if booking_range_multiday or form.end_date.errors %} open{% endif %}>
+        <summary>Запись на несколько дней</summary>
+        {% include 'newsroom/partials/form_field.html' with field=form.end_date %}
+      </details>
+      {% include 'newsroom/partials/form_field.html' with field=form.description %}
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">{{ submit_label }}</button>
+        <a class="button button-secondary" href="{{ cancel_url }}">Отмена</a>
+      </div>
+    </form>
+  </section>
+  <aside class="card shift-day-panel booking-day-panel" data-booking-day-schedule
+         data-schedule-url="{% url 'newsroom:booking_day_schedule' %}"
+         data-schedule-date="{{ schedule_date|date:'Y-m-d' }}"
+         data-schedule-studio-id="{{ schedule_studio.pk|default:'' }}"
+         data-editing-booking-id="{{ editing_booking_id|default_if_none:'' }}"
+         aria-labelledby="booking-day-heading">
+    <div class="card-header">
+      <div>
+        <h2 id="booking-day-heading">Расписание дня</h2>
+        <p data-booking-studio-label>{{ schedule_studio|default:"Студия не выбрана" }}</p>
+        <p data-booking-day-label>{{ schedule_date|date:"l, j E Y" }}</p>
+      </div>
+    </div>
+    <div class="shift-day-body">
+      <div class="message message-error booking-conflict" data-booking-conflict role="alert" hidden></div>
+      <p class="shift-day-status" data-booking-day-status role="status" aria-live="polite">Всего записей: {{ day_schedule|length }}</p>
+      <button type="button" class="button button-secondary button-small shift-day-retry" data-booking-day-retry hidden>Повторить загрузку</button>
+      <ol class="shift-day-list" data-booking-day-list>
+        {% for booking in day_schedule %}
+        <li class="booking-day-item shift-day-item{% if booking.status == 'cancelled' %} is-cancelled{% endif %}">
+          <span class="shift-day-time">{{ booking.start_label|default:booking.start_time }} — {{ booking.end_label|default:booking.end_time }}</span>
+          <strong>{{ booking.title }}</strong>
+          <p class="booking-day-meta">{{ booking.kind_label }} · {{ booking.responsible }} · {{ booking.status_label }}</p>
+        </li>
+        {% empty %}<li class="shift-day-empty">На выбранный день записей нет.</li>{% endfor %}
+        <li class="booking-day-item shift-day-item is-draft is-incomplete">
+          <span class="shift-day-time">{{ draft_start_label|default:draft_start_time }} — {{ draft_end_label|default:draft_end_time }}</span>
+          <strong>{{ draft_title }}</strong>
+          <p class="booking-day-meta">{{ draft_kind_label }} · {{ draft_responsible }}</p>
+          <span class="shift-draft-badge">Предпросмотр • Не сохранено</span>
+        </li>
+      </ol>
+      <noscript><p class="shift-schedule-note">Без JavaScript показаны записи для студии и даты открытия формы. Чтобы выбрать другой день, вернитесь в расписание.</p></noscript>
+      <p class="shift-schedule-note">Изменения появятся в расписании после сохранения.</p>
+    </div>
+  </aside>
+</div>
+{{ day_schedule|json_script:"booking-day-schedule-data" }}
+<script defer src="{% static 'js/booking_form.js' %}?v=20261103-booking-form"></script>
+{% endblock %}

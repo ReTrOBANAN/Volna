@@ -199,6 +199,67 @@ def bookings(request):
     })
 
 
+def _booking_positive_id(value):
+    value = str(value or "")
+    return int(value) if value.isascii() and value.isdigit() and len(value) <= 18 and int(value) > 0 else None
+
+
+def _booking_studio(value):
+    studio_id = _booking_positive_id(value)
+    return Studio.objects.filter(pk=studio_id).first() if studio_id else None
+
+
+def _booking_schedule(day, studio_id, exclude=None):
+    day_start, day_end = _aware_day(day), _aware_day(day + timedelta(days=1))
+    entries = StudioBooking.objects.filter(
+        studio_id=studio_id, starts_at__lt=day_end, ends_at__gt=day_start,
+    ).select_related("responsible").order_by("starts_at", "ends_at", "pk")
+    if exclude is not None:
+        entries = entries.exclude(pk=exclude)
+    schedule = []
+    for entry in entries:
+        start, end = timezone.localtime(entry.starts_at), timezone.localtime(entry.ends_at)
+        schedule.append({
+            "id": entry.pk, "title": entry.title,
+            "responsible": entry.responsible.get_full_name() or entry.responsible.username,
+            "responsible_id": entry.responsible_id,
+            "kind": entry.kind, "kind_label": entry.get_kind_display(),
+            "status": entry.status, "status_label": entry.get_status_display(),
+            "start_time": start.strftime("%H:%M"), "end_time": end.strftime("%H:%M"),
+            "starts_at": start.isoformat(), "ends_at": end.isoformat(),
+            "start_label": start.strftime("%H:%M" if start.date() == day else "%d.%m · %H:%M"),
+            "end_label": end.strftime("%H:%M" if end.date() == day else "%d.%m · %H:%M"),
+            "start_minute": 0 if entry.starts_at <= day_start else start.hour * 60 + start.minute,
+            "end_minute": 1440 if entry.ends_at >= day_end else min(1440, end.hour * 60 + end.minute + int(bool(end.second or end.microsecond))),
+            "is_blocking": entry.status in ("planned", "recording"),
+        })
+    return schedule
+
+
+@login_required
+@require_GET
+def booking_day_schedule(request):
+    require_capability(request.user, "bookings_view")
+    day = _calendar_date(request.GET.get("date"))
+    studio = _booking_studio(request.GET.get("studio"))
+    raw_exclude = request.GET.get("exclude", "")
+    exclude = _booking_positive_id(raw_exclude) if raw_exclude else None
+    error = None
+    if day is None:
+        error = "Укажите корректную дату расписания."
+    elif studio is None:
+        error = "Выберите существующую студию."
+    elif raw_exclude and exclude is None:
+        error = "Некорректный идентификатор бронирования."
+    payload = {"error": error} if error else {
+        "date": day.isoformat(), "studio": studio.pk,
+        "bookings": _booking_schedule(day, studio.pk, exclude),
+    }
+    response = JsonResponse(payload, status=400 if error else 200, json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
 @login_required
 def booking_create(request, pk=None):
     booking = get_object_or_404(StudioBooking, pk=pk) if pk else None
@@ -207,15 +268,57 @@ def booking_create(request, pk=None):
             raise PermissionDenied
     else:
         require_capability(request.user, "bookings_create")
-    form = BookingForm(request.POST or None, instance=booking, user=request.user)
+    selected_day = timezone.localtime(booking.starts_at).date() if booking else _selected_date(request)
+    initial_studio = booking.studio if booking else (_booking_studio(request.GET.get("studio")) or Studio.objects.order_by("pk").first())
+    mode = "day" if request.GET.get("view") == "day" else "week"
+    explicit_period = _calendar_date(request.GET.get("period"))
+    period = explicit_period or selected_day
+    period_start = period if mode == "day" else period - timedelta(days=period.weekday())
+    period_end = period_start + timedelta(days=1 if mode == "day" else 7)
+    initial = {"date": selected_day}
+    if initial_studio:
+        initial["studio"] = initial_studio.pk
+    form = BookingForm(request.POST if request.method == "POST" else None, instance=booking, user=request.user, initial=initial)
     if request.method == "POST" and form.is_valid():
         try:
             booking = services.save_booking(request.user, form.save(commit=False))
         except ValidationError as exc:
-            _add_error(form, exc)
+            _add_error(form, form.map_model_errors(exc))
         else:
-            return redirect("newsroom:booking_detail", pk=booking.pk)
-    return _form_page(request, form, "Изменить бронирование" if pk else "Забронировать студию", "bookings")
+            saved_day = timezone.localtime(booking.starts_at).date()
+            return_day = period_start if explicit_period and period_start <= saved_day < period_end else saved_day
+            return redirect(f"{reverse('newsroom:bookings')}?date={return_day.isoformat()}&view={mode}")
+    preview_day = (_calendar_date(form.data.get("date")) if form.is_bound else None) or selected_day
+    preview_studio = _booking_studio(form.data.get("studio")) if form.is_bound else initial_studio
+    responsible_id = _booking_positive_id(form["responsible"].value())
+    responsible = form.fields["responsible"].queryset.filter(pk=responsible_id).first() if responsible_id else None
+    title = "Изменить бронирование" if pk else "Забронировать студию"
+    ending_value = form["end_date"].value()
+    ending_day = _calendar_date(ending_value.isoformat() if hasattr(ending_value, "isoformat") else ending_value)
+    draft_times = {}
+    for name in ("start_time", "end_time"):
+        try:
+            value = form.fields[name].clean(form[name].value())
+        except ValidationError:
+            draft_times[name] = "--:--"
+        else:
+            draft_times[name] = value.strftime("%H:%M")
+    return render(request, "newsroom/booking_form.html", {
+        "form": form, "title": title, "page_title": title,
+        "submit_label": "Сохранить изменения" if pk else "Забронировать",
+        "cancel_url": f"{reverse('newsroom:bookings')}?date={period.isoformat()}&view={mode}",
+        "day_schedule": _booking_schedule(preview_day, preview_studio.pk, pk) if preview_studio else [],
+        "schedule_date": preview_day, "schedule_studio": preview_studio,
+        "schedule_url": reverse("newsroom:booking_day_schedule"), "editing_booking_id": pk,
+        "booking_range_multiday": bool((ending_day and ending_day != preview_day) or (form.is_bound and "end_date" in form.errors)),
+        "draft_title": str(form["title"].value() or "").strip() or ("Изменяемая запись" if pk else "Новая запись"),
+        "draft_responsible": (responsible.get_full_name() or responsible.username) if responsible else "Ответственный не выбран",
+        "draft_start_time": draft_times["start_time"], "draft_end_time": draft_times["end_time"],
+        "draft_start_label": draft_times["start_time"],
+        "draft_end_label": f"{ending_day:%d.%m} · {draft_times['end_time']}" if ending_day and ending_day != preview_day else draft_times["end_time"],
+        "draft_kind_label": dict(StudioBooking.Kind.choices).get(form["kind"].value(), "Тип записи не выбран"),
+        "draft_end_date": ending_day.isoformat() if ending_day else "",
+    })
 
 
 @login_required

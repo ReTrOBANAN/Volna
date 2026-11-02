@@ -120,8 +120,10 @@ class BookingTests(NewsroomTestCase):
         self.login_as('radio_reporter')
         response = self.client.post(reverse('newsroom:booking_create'), {
             'title': 'Прямой эфир', 'description': 'Интервью', 'studio': self.studio.pk,
-            'starts_at': timezone.localtime(self.start).strftime('%Y-%m-%dT%H:%M'),
-            'ends_at': timezone.localtime(self.start + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M'),
+            'date': timezone.localtime(self.start).date().isoformat(),
+            'start_time': timezone.localtime(self.start).strftime('%H:%M'),
+            'end_time': timezone.localtime(self.start + timedelta(hours=1)).strftime('%H:%M'),
+            'end_date': timezone.localtime(self.start + timedelta(hours=1)).date().isoformat(),
             'kind': 'audio', 'responsible': self.users['radio_reporter'].pk,
         })
         self.assertEqual(response.status_code, 302)
