@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="page-heading">
+  <div><span class="eyebrow">РАДИО / РАСПИСАНИЕ</span><h1>{{ title }}</h1><p class="muted">Выберите сотрудника, дату и время его работы в эфире.</p></div>
+  <a class="card-link" href="{{ cancel_url }}">К расписанию ↗</a>
+</div>
+<div class="shift-editor-layout">
+  <section class="card form-card shift-form-card">
+    <form method="post" class="editor-form" data-shift-form>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="message message-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+      {% include 'newsroom/partials/form_field.html' with field=form.employee %}
+      {% include 'newsroom/partials/form_field.html' with field=form.date %}
+      <fieldset class="shift-time-range">
+        <legend>Время эфира</legend>
+        <div class="shift-time-inputs">
+          {% include 'newsroom/partials/form_field.html' with field=form.start_time %}
+          <span class="shift-time-divider" aria-hidden="true">→</span>
+          {% include 'newsroom/partials/form_field.html' with field=form.end_time %}
+        </div>
+      </fieldset>
+      {% include 'newsroom/partials/form_field.html' with field=form.notes %}
+      <div class="form-actions">
+        <button class="button button-primary" type="submit">{{ submit_label }}</button>
+        <a class="button button-secondary" href="{{ cancel_url }}">Отмена</a>
+      </div>
+    </form>
+  </section>
+  <aside class="card shift-day-panel" data-shift-day-schedule
+         data-schedule-url="{% url 'newsroom:shift_day_schedule' %}"
+         data-schedule-date="{{ schedule_date|date:'Y-m-d' }}"
+         data-editing-shift-id="{{ editing_shift_id|default_if_none:'' }}"
+         aria-labelledby="shift-day-heading">
+    <div class="card-header">
+      <div><h2 id="shift-day-heading">Расписание дня</h2><p data-shift-day-label>{{ schedule_date|date:"l, j E Y" }}</p></div>
+    </div>
+    <div class="shift-day-body">
+      <p class="shift-day-status" data-shift-day-status role="status" aria-live="polite">Всего эфиров: {{ day_schedule|length }}</p>
+      <button type="button" class="button button-secondary button-small shift-day-retry" data-shift-day-retry hidden>Повторить загрузку</button>
+      <ol class="shift-day-list" data-shift-day-list>
+        {% for shift in day_schedule %}
+        <li class="shift-day-item">
+          <span class="shift-day-time">{{ shift.start_time }} <span aria-hidden="true">—</span> {{ shift.end_time }}</span>
+          <strong>{{ shift.employee }}</strong>
+          {% if shift.notes %}<p class="shift-note">{{ shift.notes }}</p>{% endif %}
+        </li>
+        {% empty %}<li class="shift-day-empty">На выбранную дату эфиров пока нет.</li>{% endfor %}
+        <li class="shift-day-item is-draft is-incomplete">
+          <span class="shift-day-time">{{ draft_start_time }} — {{ draft_end_time }}</span>
+          <strong>{{ draft_employee }}</strong>
+          {% if form.notes.value %}<p class="shift-note">{{ form.notes.value }}</p>{% endif %}
+          <span class="shift-draft-badge">Предпросмотр • Не сохранён</span>
+        </li>
+      </ol>
+      <noscript><p class="shift-schedule-note">Без JavaScript показаны сохранённые эфиры на дату открытия формы. Чтобы выбрать другой день, вернитесь в календарь и откройте его дату.</p></noscript>
+      <p class="shift-schedule-note">Изменения в форме появятся в расписании после сохранения.</p>
+    </div>
+  </aside>
+</div>
+{{ day_schedule|json_script:"shift-day-schedule-data" }}
+<script defer src="{% static 'js/shift_form.js' %}"></script>
+{% endblock %}

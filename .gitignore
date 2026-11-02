@@ -1,0 +1,13 @@
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+db.sqlite3*
+private_media/
+staticfiles/
+.DS_Store
+.coverage
+htmlcov/
+test-results/

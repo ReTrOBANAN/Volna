@@ -1,0 +1,46 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17685c">
+  <title>{% block title %}{{ page_title|default:"Рабочее пространство" }} · Волна{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261103-1">
+  <script defer src="{% static 'js/app.js' %}"></script>
+  <script defer src="{% static 'js/toasts.js' %}"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar" aria-label="Основная навигация">
+    <a class="brand" href="{% url 'newsroom:dashboard' %}" aria-label="Волна — главная"><span class="brand-mark"><i></i><i></i><i></i><i></i><i></i></span><span>волна<span class="brand-caption">МЕДИАРЕДАКЦИЯ</span></span></a>
+    <span class="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</span>
+    <nav>
+      <a class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'newsroom:dashboard' %}"><span class="nav-icon">⌂</span>Главная</a>
+      {% if access.shifts_view or access.bookings_view or access.news_view %}
+      <span class="nav-group"><span class="nav-icon">◉</span>Радио</span>
+      <div class="nav-subgroup">
+        {% if access.shifts_view %}<a class="nav-item {% if request.resolver_match.url_name == 'shifts' %}active{% endif %}" href="{% url 'newsroom:shifts' %}">Расписание эфиров</a>{% endif %}
+        {% if access.bookings_view %}<a class="nav-item {% if 'booking' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'newsroom:bookings' %}">Бронирование студий</a>{% endif %}
+        {% if access.news_view %}<a class="nav-item {% if request.resolver_match.url_name == 'news' %}active{% endif %}" href="{% url 'newsroom:news' %}">Новости</a>{% endif %}
+      </div>
+      {% endif %}
+      {% if access.events_view %}<span class="nav-group"><span class="nav-icon">▣</span>Телевидение</span><div class="nav-subgroup"><a class="nav-item {% if 'event' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'newsroom:events' %}">Инфоповоды</a></div>{% endif %}
+      {% if access.proposals_view %}<a class="nav-item {% if 'proposal' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'newsroom:proposals' %}"><span class="nav-icon">◇</span>Предложения</a>{% endif %}
+      {% if access.files_view %}<a class="nav-item {% if 'file' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'newsroom:files' %}"><span class="nav-icon">▱</span>Файлообменник</a>{% endif %}
+      {% if access.employees_manage %}<a class="nav-item {% if 'employee' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'newsroom:employees' %}"><span class="nav-icon">♧</span>Сотрудники</a>{% endif %}
+    </nav>
+    <div class="sidebar-bottom"><div class="workspace-note"><span class="live-dot"></span>Единая редакция<span>На одной волне</span></div><a class="nav-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'newsroom:profile' %}"><span class="nav-icon">⚙</span>Настройки профиля</a><form action="{% url 'newsroom:logout' %}" method="post">{% csrf_token %}<button class="nav-item logout-button" type="submit"><span class="nav-icon">↗</span>Выйти</button></form></div>
+  </aside>
+  <div class="sidebar-backdrop" data-sidebar-close></div>
+  <div class="main-shell">
+    <header class="topbar"><div class="topbar-left"><button type="button" class="icon-button mobile-menu" data-sidebar-toggle aria-label="Открыть меню" aria-expanded="false">☰</button><span class="topbar-title">Рабочее пространство</span><span class="topbar-divider">/</span><span class="topbar-current">{{ page_title|default:"Главная" }}</span></div><div class="topbar-actions"><a class="notification-link" href="{% url 'newsroom:notifications' %}" aria-label="Уведомления"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span class="notification-count {% if not unread_count %}hidden{% endif %}" data-notification-count>{{ unread_count|default:0 }}</span></a><span class="user-avatar">{{ request.user.first_name|first|default:request.user.username|first|upper }}</span><a class="topbar-user" href="{% url 'newsroom:profile' %}"><strong>{{ request.user.get_full_name|default:request.user.username }}</strong><span>{{ employee.get_role_display }}</span></a></div></header>
+    <main class="main-content" id="main-content">
+      {% block content %}{% endblock %}
+      <footer class="page-footer"><span>Волна · пространство единой редакции</span><span>Радио. Телевидение. Сайт.</span></footer>
+    </main>
+  </div>
+</div>
+{% include 'newsroom/partials/toasts.html' %}
+</body>
+</html>
