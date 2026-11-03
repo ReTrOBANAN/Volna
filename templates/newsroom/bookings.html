@@ -1,10 +1,10 @@
 {% extends 'base.html' %}{% block content %}
 <div class="page-heading"><div><span class="eyebrow">ЕДИНАЯ РЕДАКЦИЯ</span><h1>Бронирование студий</h1><p class="muted">Найдите свободное время для новой записи.</p></div></div>
-<div class="toolbar">
+<div class="toolbar booking-calendar-toolbar">
   <div class="calendar-nav"><a class="icon-button" href="?date={{ previous_date|date:'Y-m-d' }}&amp;view={{ view_mode }}" aria-label="Предыдущий период">‹</a><a class="icon-button" href="?date={{ next_date|date:'Y-m-d' }}&amp;view={{ view_mode }}" aria-label="Следующий период">›</a><strong>{{ start|date:"j E" }}{% if view_mode == 'week' %} — {{ end|date:"j E Y" }}{% else %} {{ start|date:"Y" }}{% endif %}</strong></div>
   <div class="toolbar-group booking-calendar-controls">
-    <div class="segmented"><a href="?date={{ selected_date|date:'Y-m-d' }}&amp;view=day" class="{% if view_mode == 'day' %}active{% endif %}">День</a><a href="?date={{ selected_date|date:'Y-m-d' }}&amp;view=week" class="{% if view_mode == 'week' %}active{% endif %}">Неделя</a></div>
     <a class="button button-secondary button-small" href="{% url 'newsroom:bookings' %}?view=week">Текущая неделя</a>
+    <div class="segmented"><a href="?date={{ selected_date|date:'Y-m-d' }}&amp;view=day" class="{% if view_mode == 'day' %}active{% endif %}">День</a><a href="?date={{ selected_date|date:'Y-m-d' }}&amp;view=week" class="{% if view_mode == 'week' %}active{% endif %}">Неделя</a></div>
   </div>
 </div>
 <div class="shift-history-nav booking-history-nav"><form class="shift-calendar-jump" method="get" action="{% url 'newsroom:bookings' %}"><input type="date" id="booking-calendar-date" name="date" value="{{ selected_date|date:'Y-m-d' }}" min="1970-01-01" max="2200-12-31" required aria-label="Дата расписания студий"><input type="hidden" name="view" value="{{ view_mode }}"><button class="button button-secondary button-small" type="submit">Перейти к дате</button></form></div>
