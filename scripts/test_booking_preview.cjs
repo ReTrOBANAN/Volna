@@ -61,7 +61,7 @@ function saved(id, title, start, end, overrides = {}) {
   const label = (date, value) => `${date === day ? '' : `${date.slice(8, 10)}.${date.slice(5, 7)} · `}${value}`;
   return {
     id, title, responsible: 'Анна Волкова', responsible_id: 1,
-    kind: 'audio', kind_label: 'Аудиозапись', status,
+    kind: 'audio', kind_label: 'Без видео', status,
     status_label: {planned: 'Запланировано', recording: 'Идёт запись', completed: 'Завершено', cancelled: 'Отменено'}[status],
     starts_at: `${startDay}T${start}:00+07:00`, ends_at: `${endDay}T${end}:00+07:00`,
     start_time: start, end_time: end, start_label: label(startDay, start), end_label: label(endDay, end),
@@ -74,7 +74,7 @@ function createHarness({bookings = [], date = DAY, studio = '1', editingId = '',
   const fields = {
     studio: selectField([['', 'Выберите студию'], ['1', 'Студия №1'], ['2', 'Студия №2']], studio),
     responsible: selectField([['', 'Выберите ответственного'], ['1', 'Анна Волкова'], ['2', 'Мария Белова']], responsible),
-    kind: selectField([['', 'Выберите тип'], ['audio', 'Аудиозапись'], ['video', 'Видеосъёмка']], 'audio'),
+    kind: selectField([['', 'Выберите тип'], ['audio', 'Без видео'], ['video', 'С видео']], 'audio'),
     date: Object.assign(new Element('input'), {value: date}),
     start_time: Object.assign(new Element('input'), {value: start}),
     end_time: Object.assign(new Element('input'), {value: end}),
@@ -136,7 +136,7 @@ test('an initially incomplete draft updates title, responsible, kind and time li
   assert.equal(titleOf(draft).textContent, literal);
   assert.equal(titleOf(draft).children.length, 0);
   assert.equal(draft.classList.contains('is-incomplete'), false);
-  assert.match(metaOf(draft).textContent, /Видеосъёмка · Мария Белова/);
+  assert.match(metaOf(draft).textContent, /С видео · Мария Белова/);
   assert.equal(h.requests.length, 0);
 });
 

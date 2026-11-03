@@ -97,8 +97,8 @@ class StudioBooking(TimeRange):
         CANCELLED = 'cancelled', 'Отменено'
 
     class Kind(models.TextChoices):
-        AUDIO = 'audio', 'Аудиозапись'
-        VIDEO = 'video', 'Видеосъёмка'
+        AUDIO = 'audio', 'Без видео'
+        VIDEO = 'video', 'С видео'
 
     title = models.CharField('Название записи', max_length=220)
     description = models.TextField('Описание', blank=True)
