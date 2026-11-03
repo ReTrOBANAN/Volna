@@ -4,7 +4,7 @@
   const initialData = document.getElementById('booking-day-schedule-data');
   if (!form || !panel || !initialData) return;
 
-  const fields = Object.fromEntries(['studio', 'date', 'start_time', 'end_time', 'title', 'responsible', 'kind']
+  const fields = Object.fromEntries(['studio', 'date', 'start_time', 'end_time', 'title', 'kind']
     .map(name => [name, form.elements.namedItem(name)]));
   const list = panel.querySelector('[data-booking-day-list]');
   const dayLabel = panel.querySelector('[data-booking-day-label]');
@@ -15,6 +15,7 @@
   if (Object.values(fields).some(field => !field) || !list || !dayLabel || !studioLabel || !status || !retry || !conflict) return;
 
   const editingId = panel.dataset.editingBookingId;
+  const draftResponsible = form.dataset.draftResponsible || '';
   const formatter = new Intl.DateTimeFormat('ru-RU', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
   const isTime = value => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
   const isDate = value => {
@@ -108,19 +109,18 @@
       const endMinute = validEnd ? minutes(fields.end_time.value) : 9999;
       hasConflict = loadState === 'ready' && validRange && saved.some(item => item.is_blocking
         && item.start_minute < endMinute && item.end_minute > startMinute);
-      const hasResponsible = Boolean(fields.responsible.value && option(fields.responsible));
       const hasKind = Boolean(fields.kind.value && option(fields.kind));
       const title = fields.title.value.trim();
       entries.push({
         title: title || (editingId ? 'Изменяемая запись' : 'Новая запись'),
-        responsible: hasResponsible ? option(fields.responsible).textContent.trim() : 'Ответственный не выбран',
+        responsible: draftResponsible,
         kind_label: hasKind ? option(fields.kind).textContent.trim() : 'Тип записи не выбран',
         start_label: validStart ? fields.start_time.value : '--:--',
         end_label: validEnd ? fields.end_time.value : '--:--',
         start_minute: startMinute,
         end_minute: endMinute,
         isDraft: true,
-        isIncomplete: !title || !hasResponsible || !hasKind || !validRange,
+        isIncomplete: !title || !hasKind || !validRange,
         hasInvalidTime: Boolean((fields.start_time.value && !validStart) || (fields.end_time.value && !validEnd)
           || (validStart && validEnd && !validRange)),
         hasConflict,

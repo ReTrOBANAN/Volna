@@ -73,7 +73,7 @@ class Command(BaseCommand):
             StudioBooking.objects.get_or_create(demo_key=f'demo-booking-{key}', defaults={
                 'title': title, 'description': 'Демонстрационная запись для знакомства с системой.',
                 'studio': studio, 'starts_at': moment(day, start), 'ends_at': moment(day, end),
-                'kind': kind, 'status': status, 'responsible': accounts['radio_reporter'],
+                'kind': kind, 'status': status, 'responsible': accounts['radio_chief'],
                 'created_by': accounts['radio_chief'], 'engineer': accounts['engineer'] if key == 'finished' else None,
                 'montage_completed': key == 'finished',
             })

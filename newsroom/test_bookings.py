@@ -72,7 +72,7 @@ class BookingCalendarFormTests(TestCase):
         values = {
             'title': 'Новая запись', 'description': 'Интервью', 'studio': self.studio.pk,
             'date': self.day.isoformat(), 'start_time': '10:00', 'end_time': '11:00',
-            'kind': 'audio', 'responsible': self.reporter.pk,
+            'kind': 'audio',
         }
         values.update(kwargs)
         return values
@@ -96,6 +96,8 @@ class BookingCalendarFormTests(TestCase):
         self.assertNotIn('end_date', form.fields)
         self.assertNotContains(response, 'name="starts_at"')
         self.assertNotContains(response, 'type="datetime-local"')
+        self.assertNotIn('responsible', form.fields)
+        self.assertNotContains(response, 'name="responsible"')
 
     def test_create_stores_local_times_and_ignores_forged_old_and_workflow_fields(self):
         response = self.client.post(self.create_url, self.data(
@@ -112,6 +114,7 @@ class BookingCalendarFormTests(TestCase):
         self.assertIsNone(entry.engineer_id)
         self.assertFalse(entry.montage_completed)
         self.assertEqual(entry.created_by, self.reporter)
+        self.assertEqual(entry.responsible, self.reporter)
 
     def test_legacy_multiday_record_changes_only_after_a_valid_same_day_edit(self):
         last_day = self.day + timedelta(days=2)
@@ -183,15 +186,49 @@ class BookingCalendarFormTests(TestCase):
                 self.assertEqual(response.status_code, 302)
                 self.assertTrue(StudioBooking.objects.filter(title=title).exists())
 
-    def test_responsible_choices_enforce_role_scope_and_allow_chief_assignment(self):
-        response = self.client.post(self.create_url, self.data(responsible=self.chief.pk))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('responsible', response.context['form'].errors)
-        self.assertFalse(StudioBooking.objects.exists())
+    def test_creator_is_responsible_even_when_reporter_or_chief_forges_both_fields(self):
+        for index, (actor, forged_user) in enumerate([(self.reporter, self.chief), (self.chief, self.reporter)]):
+            with self.subTest(actor=actor.username):
+                self.client.force_login(actor)
+                response = self.client.post(self.create_url, self.data(
+                    title=f'Создатель {index}', start_time=f'{10 + index * 2}:00',
+                    end_time=f'{11 + index * 2}:00', responsible=forged_user.pk,
+                    created_by=forged_user.pk,
+                ))
+                self.assertEqual(response.status_code, 302)
+                entry = StudioBooking.objects.get(title=f'Создатель {index}')
+                self.assertEqual(entry.created_by, actor)
+                self.assertEqual(entry.responsible, actor)
+
+    def test_manager_edit_keeps_original_creator_and_responsible_despite_forged_fields(self):
+        entry = self.booking()
         self.client.force_login(self.chief)
-        response = self.client.post(self.create_url, self.data(responsible=self.reporter.pk))
+        url = reverse('newsroom:booking_edit', args=[entry.pk])
+        response = self.client.get(url)
+        self.assertNotIn('responsible', response.context['form'].fields)
+        self.assertEqual(response.context['draft_responsible'], self.reporter.get_full_name())
+        response = self.client.post(url, self.data(title='Правка главреда', responsible=self.chief.pk,
+                                                  created_by=self.chief.pk))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(StudioBooking.objects.get().responsible, self.reporter)
+        entry.refresh_from_db()
+        self.assertEqual(entry.title, 'Правка главреда')
+        self.assertEqual(entry.created_by, self.reporter)
+        self.assertEqual(entry.responsible, self.reporter)
+        rows = self.client.get(self.api_url, {'date': self.day.isoformat(), 'studio': self.studio.pk}).json()['bookings']
+        self.assertEqual(rows[0]['responsible_id'], self.reporter.pk)
+
+    def test_manager_can_edit_booking_without_reassigning_its_inactive_creator(self):
+        entry = self.booking()
+        self.reporter.is_active = False
+        self.reporter.save(update_fields=['is_active'])
+        self.client.force_login(self.chief)
+        response = self.client.post(reverse('newsroom:booking_edit', args=[entry.pk]),
+                                    self.data(title='Правка после отключения создателя'))
+        self.assertEqual(response.status_code, 302)
+        entry.refresh_from_db()
+        self.assertEqual(entry.title, 'Правка после отключения создателя')
+        self.assertEqual(entry.created_by, self.reporter)
+        self.assertEqual(entry.responsible, self.reporter)
 
     def test_create_and_foreign_edit_keep_existing_role_permissions(self):
         other = self.booking(created_by=self.chief)

@@ -71,10 +71,9 @@ function saved(id, title, start, end, overrides = {}) {
   };
 }
 
-function createHarness({bookings = [], date = DAY, studio = '1', editingId = '', title = '', responsible = '1', start = '10:00', end = '13:00'} = {}) {
+function createHarness({bookings = [], date = DAY, studio = '1', editingId = '', title = '', creator = 'Анна Волкова', start = '10:00', end = '13:00'} = {}) {
   const fields = {
     studio: selectField([['', 'Выберите студию'], ['1', 'Студия №1'], ['2', 'Студия №2']], studio),
-    responsible: selectField([['', 'Выберите ответственного'], ['1', 'Анна Волкова'], ['2', 'Мария Белова']], responsible),
     kind: selectField([['', 'Выберите тип'], ['audio', 'Без видео'], ['video', 'С видео']], 'audio'),
     date: Object.assign(new Element('input'), {value: date}),
     start_time: Object.assign(new Element('input'), {value: start}),
@@ -82,6 +81,7 @@ function createHarness({bookings = [], date = DAY, studio = '1', editingId = '',
     title: Object.assign(new Element('input'), {value: title}),
   };
   const form = new Element('form');
+  form.dataset = {draftResponsible: creator};
   form.elements = {namedItem: name => fields[name]};
   const parts = Object.fromEntries(['list', 'day-label', 'studio-label', 'status', 'retry', 'conflict'].map(key => [key, new Element()]));
   const panel = new Element('aside');
@@ -121,25 +121,28 @@ const metaOf = entry => entry.children.find(child => child.className === 'bookin
 const timeOf = entry => entry.children.find(child => child.className === 'shift-day-time');
 const badgeOf = entry => entry.children.find(child => child.className === 'shift-draft-badge');
 
-test('an initially incomplete draft updates title, responsible, kind and time live using literal text', () => {
+test('a draft uses its server-provided creator without a responsible input and updates other fields using literal text', () => {
   const literal = '<img src=x onerror=alert(1)> Интервью';
-  const h = createHarness({responsible: '', bookings: [saved(1, literal, '08:00', '09:00', {responsible: '<b>Ответственный</b>'})]});
+  const creator = '<b>Мария Белова</b>';
+  const h = createHarness({creator, bookings: [saved(1, literal, '08:00', '09:00', {responsible: '<b>Ответственный</b>'})]});
+  assert.equal('responsible' in h.fields, false, 'the booking has no responsible selector');
   assert.equal(h.drafts().length, 1);
   assert.equal(titleOf(h.drafts()[0]).textContent, 'Новая запись');
   assert.equal(h.drafts()[0].classList.contains('is-incomplete'), true);
-  assert.match(metaOf(h.drafts()[0]).textContent, /Ответственный не выбран/);
+  assert.equal(metaOf(h.drafts()[0]).textContent, `Без видео · ${creator}`);
+  assert.equal(metaOf(h.drafts()[0]).children.length, 0);
   assert.equal(titleOf(h.entries()[0]).textContent, literal);
   assert.equal(titleOf(h.entries()[0]).children.length, 0);
   assert.match(metaOf(h.entries()[0]).textContent, /<b>Ответственный<\/b>/);
   assert.equal(metaOf(h.entries()[0]).children.length, 0);
-  h.change({title: ` ${literal} `, responsible: '2', kind: 'video', start_time: '07:00', end_time: '08:00'}, 'change');
+  h.change({title: ` ${literal} `, kind: 'video', start_time: '07:00', end_time: '08:00'}, 'change');
   const draft = h.drafts()[0];
   assert.equal(h.drafts().length, 1);
   assert.equal(h.entries()[0], draft);
   assert.equal(titleOf(draft).textContent, literal);
   assert.equal(titleOf(draft).children.length, 0);
   assert.equal(draft.classList.contains('is-incomplete'), false);
-  assert.match(metaOf(draft).textContent, /С видео · Мария Белова/);
+  assert.equal(metaOf(draft).textContent, `С видео · ${creator}`);
   assert.equal(h.requests.length, 0);
 });
 
@@ -298,13 +301,14 @@ test('legacy carry-in intervals remain readable while new drafts must end the sa
 });
 
 test('editing excludes the original booking from both duplicate display and conflict checks', () => {
-  const h = createHarness({editingId: '42', title: 'Правка', start: '10:00', end: '11:00', bookings: [
+  const h = createHarness({editingId: '42', title: 'Правка', creator: 'Создатель исходной брони', start: '10:00', end: '11:00', bookings: [
     saved(42, 'Собственная запись', '10:00', '11:00'), saved(99, 'Другая запись', '13:00', '14:00'),
   ]});
   assert.equal(h.entries().length, 2);
   assert.doesNotMatch(h.parts.list.textContent, /Собственная запись/);
   assert.equal(h.parts.conflict.hidden, true);
   assert.match(badgeOf(h.drafts()[0]).textContent, /Изменяемая запись/);
+  assert.match(metaOf(h.drafts()[0]).textContent, /Создатель исходной брони/);
   h.change({start_time: '13:00', end_time: '14:00'});
   assert.equal(h.parts.conflict.hidden, false);
 });

@@ -120,6 +120,27 @@ class BookingTests(NewsroomTestCase):
         booking = save_booking(self.users['radio_reporter'], self.booking())
         self.assertTrue(StudioBooking.objects.filter(pk=booking.pk).exists())
         self.assertEqual(booking.created_by, self.users['radio_reporter'])
+        self.assertEqual(booking.responsible, booking.created_by)
+
+    def test_service_manager_create_ignores_supplied_creator_and_responsible(self):
+        booking = save_booking(self.users['radio_chief'], self.booking(
+            created_by=self.users['tv_reporter'], responsible=self.users['engineer'],
+        ))
+        booking.refresh_from_db()
+        self.assertEqual(booking.created_by, self.users['radio_chief'])
+        self.assertEqual(booking.responsible, booking.created_by)
+
+    def test_service_manager_edit_keeps_original_creator_and_repairs_responsible(self):
+        booking = save_booking(self.users['radio_reporter'], self.booking())
+        # A service caller cannot reassign ownership by mutating its model instance.
+        booking.created_by = self.users['radio_chief']
+        booking.responsible = self.users['engineer']
+        booking.title = 'Правка руководителя'
+        saved = save_booking(self.users['radio_chief'], booking)
+        saved.refresh_from_db()
+        self.assertEqual(saved.title, 'Правка руководителя')
+        self.assertEqual(saved.created_by, self.users['radio_reporter'])
+        self.assertEqual(saved.responsible, saved.created_by)
 
     def test_radio_reporter_http_booking_persists(self):
         self.login_as('radio_reporter')
@@ -128,10 +149,12 @@ class BookingTests(NewsroomTestCase):
             'date': timezone.localtime(self.start).date().isoformat(),
             'start_time': '10:00',
             'end_time': '11:00',
-            'kind': 'audio', 'responsible': self.users['radio_reporter'].pk,
+            'kind': 'audio',
         })
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(StudioBooking.objects.filter(title='Прямой эфир').exists())
+        booking = StudioBooking.objects.get(title='Прямой эфир')
+        self.assertEqual(booking.responsible, self.users['radio_reporter'])
+        self.assertEqual(booking.created_by, booking.responsible)
 
     def test_overlapping_active_bookings_rejected(self):
         save_booking(self.users['radio_reporter'], self.booking())
@@ -393,6 +416,17 @@ class ProposalAndEmployeeTests(NewsroomTestCase):
         proposal.refresh_from_db()
         self.assertEqual(proposal.status, 'pending')
         self.assertIsNone(proposal.booking_id)
+
+    def test_approved_booking_is_owned_by_reviewer_while_producer_remains_proposal_author(self):
+        proposal = self.proposal(kind='booking', studio=self.studio)
+        reviewer = self.users['radio_chief']
+        review_proposal(reviewer, proposal, True)
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, 'approved')
+        self.assertEqual(proposal.author, self.users['producer'])
+        self.assertEqual(proposal.reviewed_by, reviewer)
+        self.assertEqual(proposal.booking.created_by, reviewer)
+        self.assertEqual(proposal.booking.responsible, reviewer)
 
     def test_radio_chief_cannot_create_director(self):
         target = User(username='privilege_escalation', first_name='Новый директор')

@@ -12,7 +12,7 @@ from .models import (
     StudioBooking, UploadedFile,
 )
 from .permissions import (
-    allowed_employee_roles, can, can_view_event_materials, role_of, visible_events,
+    allowed_employee_roles, can_view_event_materials, role_of, visible_events,
 )
 
 User = get_user_model()
@@ -118,7 +118,6 @@ class ShiftForm(forms.ModelForm):
 
 
 class BookingForm(forms.ModelForm):
-    responsible = EmployeeChoiceField(queryset=User.objects.none(), label="Ответственный")
     date = forms.DateField(
         label="Дата записи",
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "min": "1970-01-01", "max": "2200-12-31"}),
@@ -133,19 +132,15 @@ class BookingForm(forms.ModelForm):
     )
     class Meta:
         model = StudioBooking
-        fields = ["title", "description", "studio", "date", "start_time", "end_time", "kind", "responsible"]
+        fields = ["title", "description", "studio", "date", "start_time", "end_time", "kind"]
         labels = {
             "title": "Название записи", "description": "Описание", "studio": "Студия",
             "kind": "Тип записи",
         }
         widgets = {"description": forms.Textarea(attrs={"rows": 4})}
 
-    def __init__(self, *args, user, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        qs = User.objects.filter(is_active=True, employee__isnull=False)
-        if not can(user, "bookings_manage"):
-            qs = qs.filter(pk=user.pk)
-        self.fields["responsible"].queryset = qs.order_by("first_name", "username")
         if self.instance.pk:
             start = timezone.localtime(self.instance.starts_at)
             end = timezone.localtime(self.instance.ends_at)
@@ -153,7 +148,6 @@ class BookingForm(forms.ModelForm):
                 date=start.date(), start_time=start.time(), end_time=end.time(),
             )
         else:
-            self.fields["responsible"].initial = user
             self.initial.setdefault("date", timezone.localdate())
             self.initial.setdefault("start_time", time(10))
             self.initial.setdefault("end_time", time(13))

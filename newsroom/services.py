@@ -138,10 +138,7 @@ def save_booking(user, booking):
             booking.montage_completed = original.montage_completed
             if original.engineer_id and booking.kind != original.kind:
                 raise ValidationError('Нельзя менять тип записи после назначения инженера.')
-        if not can(user, 'bookings_manage'):
-            booking.responsible = user
-        if not booking.responsible_id or not booking.responsible.is_active:
-            raise ValidationError('Выберите активного ответственного сотрудника.')
+        booking.responsible_id = booking.created_by_id
         _validate_booking_day(booking.starts_at, booking.ends_at)
         previous = booking.status
         booking.status = _booking_status_at(booking, now)
@@ -422,7 +419,7 @@ def review_proposal(user, proposal, approve):
         if proposal.kind == 'event':
             proposal.event = save_event(user, Event(title=proposal.title, description=proposal.description, starts_at=proposal.starts_at, ends_at=proposal.ends_at))
         else:
-            proposal.booking = save_booking(user, StudioBooking(title=proposal.title, description=proposal.description, starts_at=proposal.starts_at, ends_at=proposal.ends_at, studio=proposal.studio, kind=proposal.booking_kind, responsible=proposal.author))
+            proposal.booking = save_booking(user, StudioBooking(title=proposal.title, description=proposal.description, starts_at=proposal.starts_at, ends_at=proposal.ends_at, studio=proposal.studio, kind=proposal.booking_kind))
     proposal.status = 'approved' if approve else 'rejected'
     proposal.reviewed_by = user
     proposal.save(update_fields=['status', 'reviewed_by', 'event', 'booking', 'updated_at'])

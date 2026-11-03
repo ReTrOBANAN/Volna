@@ -311,7 +311,7 @@ def booking_create(request, pk=None):
     initial = {"date": selected_day}
     if initial_studio:
         initial["studio"] = initial_studio.pk
-    form = BookingForm(request.POST if request.method == "POST" else None, instance=booking, user=request.user, initial=initial)
+    form = BookingForm(request.POST if request.method == "POST" else None, instance=booking, initial=initial)
     if request.method == "POST" and form.is_valid():
         try:
             booking = services.save_booking(request.user, form.save(commit=False))
@@ -323,8 +323,7 @@ def booking_create(request, pk=None):
             return redirect(f"{reverse('newsroom:bookings')}?date={return_day.isoformat()}&view={mode}")
     preview_day = (_calendar_date(form.data.get("date")) if form.is_bound else None) or selected_day
     preview_studio = _booking_studio(form.data.get("studio")) if form.is_bound else initial_studio
-    responsible_id = _booking_positive_id(form["responsible"].value())
-    responsible = form.fields["responsible"].queryset.filter(pk=responsible_id).first() if responsible_id else None
+    creator = booking.created_by if booking else request.user
     title = "Изменить бронирование" if pk else "Забронировать студию"
     draft_times = {}
     for name in ("start_time", "end_time"):
@@ -343,7 +342,7 @@ def booking_create(request, pk=None):
         "schedule_date": preview_day, "schedule_studio": preview_studio,
         "schedule_url": reverse("newsroom:booking_day_schedule"), "editing_booking_id": pk,
         "draft_title": str(form["title"].value() or "").strip() or ("Изменяемая запись" if pk else "Новая запись"),
-        "draft_responsible": (responsible.get_full_name() or responsible.username) if responsible else "Ответственный не выбран",
+        "draft_responsible": creator.get_full_name() or creator.username,
         "draft_start_time": draft_times["start_time"], "draft_end_time": draft_times["end_time"],
         "draft_start_label": draft_times["start_time"],
         "draft_end_label": draft_times["end_time"],
