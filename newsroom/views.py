@@ -183,7 +183,7 @@ def bookings(request):
     start = day if mode == "day" else day - timedelta(days=day.weekday())
     length = 1 if mode == "day" else 7
     end = start + timedelta(days=length)
-    entries = StudioBooking.objects.filter(starts_at__lt=_aware_day(end), ends_at__gt=_aware_day(start)).select_related("studio", "responsible", "engineer").order_by("starts_at")
+    entries = StudioBooking.objects.filter(starts_at__lt=_aware_day(end), ends_at__gt=_aware_day(start)).exclude(status="cancelled").select_related("studio", "responsible", "engineer").order_by("starts_at")
     studios = []
     for studio in Studio.objects.order_by("pk"):
         studio_bookings = [b for b in entries if b.studio_id == studio.pk]
@@ -225,7 +225,7 @@ def booking_statuses(request):
         payload, status = {"error": "Укажите корректные идентификаторы бронирований."}, 400
     else:
         services.sync_booking_statuses(now=now, booking_ids=ids)
-        entries = StudioBooking.objects.filter(pk__in=ids).order_by("pk")
+        entries = StudioBooking.objects.filter(pk__in=ids).exclude(status="cancelled").order_by("pk")
         payload, status = {"server_now": now.isoformat(), "bookings": _booking_status_rows(entries)}, 200
     response = JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
     response["Cache-Control"] = "private, no-store"
@@ -246,7 +246,7 @@ def _booking_schedule(day, studio_id, exclude=None):
     day_start, day_end = _aware_day(day), _aware_day(day + timedelta(days=1))
     entries = StudioBooking.objects.filter(
         studio_id=studio_id, starts_at__lt=day_end, ends_at__gt=day_start,
-    ).select_related("responsible").order_by("starts_at", "ends_at", "pk")
+    ).exclude(status="cancelled").select_related("responsible").order_by("starts_at", "ends_at", "pk")
     if exclude is not None:
         entries = entries.exclude(pk=exclude)
     schedule = []
@@ -361,10 +361,8 @@ def booking_detail(request, pk):
     booking = get_object_or_404(StudioBooking.objects.select_related("studio", "responsible", "engineer", "created_by"), pk=pk)
     editable = can_edit_booking(request.user, booking)
     actions = []
-    if editable and booking.status not in ("completed", "cancelled"):
-        for status, label in [("completed", "Завершить запись"), ("cancelled", "Отменить бронь")]:
-            if booking.status != status:
-                actions.append({"action": "status", "status": status, "label": label})
+    if editable and booking.status in ("planned", "recording"):
+        actions.append({"action": "status", "status": "completed", "label": "Завершить запись"})
     if role_of(request.user) == "engineer" and booking.kind == "video" and not booking.engineer_id and booking.status in ("planned", "recording"):
         actions.append({"action": "claim", "label": "Откликнуться на видеосъёмку"})
     if booking.kind == "video" and booking.status == "completed" and not booking.montage_completed and (booking.engineer_id == request.user.pk or role_of(request.user) == "director"):
@@ -393,6 +391,19 @@ def booking_action(request, pk):
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     return redirect("newsroom:booking_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def booking_delete(request, pk):
+    require_capability(request.user, "bookings_view")
+    booking = get_object_or_404(StudioBooking, pk=pk)
+    day = timezone.localtime(booking.starts_at).date()
+    try:
+        services.delete_booking(request.user, booking)
+    except StudioBooking.DoesNotExist as exc:
+        raise Http404 from exc
+    return redirect(f"{reverse('newsroom:bookings')}?date={day.isoformat()}&view=week")
 
 
 @login_required

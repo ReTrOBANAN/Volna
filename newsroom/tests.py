@@ -18,7 +18,7 @@ from .models import (
 )
 from .permissions import ROLE_DEPARTMENTS, assign_role, can, role_of, setup_roles
 from .services import (
-    claim_booking, complete_booking_montage, delete_upload, review_proposal,
+    claim_booking, complete_booking_montage, delete_booking, delete_upload, review_proposal,
     save_booking, save_employee, save_event, save_proposal, save_upload,
     set_assignment_status, set_booking_status, transition_event,
 )
@@ -150,11 +150,13 @@ class BookingTests(NewsroomTestCase):
         save_booking(self.users['radio_reporter'], self.booking(starts_at=self.start + timedelta(hours=1), ends_at=self.start + timedelta(hours=2)))
         self.assertEqual(StudioBooking.objects.count(), 2)
 
-    def test_cancelled_booking_does_not_block_slot(self):
+    def test_deleted_booking_frees_slot(self):
         booking = save_booking(self.users['radio_reporter'], self.booking())
-        set_booking_status(self.users['radio_reporter'], booking, 'cancelled')
+        booking_id = booking.pk
+        delete_booking(self.users['radio_reporter'], booking)
         save_booking(self.users['radio_reporter'], self.booking())
-        self.assertEqual(StudioBooking.objects.count(), 2)
+        self.assertEqual(StudioBooking.objects.count(), 1)
+        self.assertFalse(StudioBooking.objects.filter(pk=booking_id).exists())
 
     def test_invalid_time_range_rejected(self):
         with self.assertRaises(ValidationError):

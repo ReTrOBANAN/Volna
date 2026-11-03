@@ -165,7 +165,7 @@ def set_booking_status(user, booking, status):
             raise PermissionDenied('Вы не можете изменять статус этой брони.')
         if status == 'recording':
             raise ValidationError('Запись начинается автоматически по расписанию. Вручную начать запись нельзя.')
-        allowed = {'planned': {'completed', 'cancelled'}, 'recording': {'completed', 'cancelled'}}
+        allowed = {'planned': {'completed'}, 'recording': {'completed'}}
         if status not in allowed.get(booking.status, set()):
             raise ValidationError('Этот переход статуса недоступен.')
         previous = booking.status
@@ -179,6 +179,20 @@ def set_booking_status(user, booking, status):
         if status == 'completed':
             _notify_booking_completed(booking, now)
         return booking
+
+
+def delete_booking(user, booking):
+    require_capability(user, 'bookings_view')
+    sync_booking_statuses(booking_ids=[booking.pk])
+    with transaction.atomic():
+        booking = StudioBooking.objects.select_for_update().get(pk=booking.pk)
+        if not can_edit_booking(user, booking):
+            raise PermissionDenied('Вы не можете удалить эту бронь.')
+        audit(user, booking, 'Удаление брони')
+        # Keep the reviewed proposal and its decision after deleting its booking.
+        Proposal.objects.filter(booking=booking).update(booking=None)
+        Notification.objects.filter(url=booking.get_absolute_url()).delete()
+        booking.delete()
 
 
 def claim_booking(user, booking):

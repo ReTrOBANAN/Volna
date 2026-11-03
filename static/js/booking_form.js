@@ -61,7 +61,7 @@
 
   const buildItem = item => {
     const entry = document.createElement('li');
-    entry.className = `shift-day-item booking-day-item${item.isDraft ? ' is-draft' : ''}${item.isIncomplete ? ' is-incomplete' : ''}${item.hasConflict ? ' has-conflict' : ''}${item.status === 'cancelled' ? ' is-cancelled' : ''}`;
+    entry.className = `shift-day-item booking-day-item${item.isDraft ? ' is-draft' : ''}${item.isIncomplete ? ' is-incomplete' : ''}${item.hasConflict ? ' has-conflict' : ''}`;
     const time = document.createElement('span');
     time.className = 'shift-day-time';
     time.textContent = `${item.start_label} — ${item.end_label}`;

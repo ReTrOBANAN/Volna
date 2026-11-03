@@ -95,7 +95,7 @@ class BookingClockTests(TestCase):
         self.assertEqual(self.system_audit(entry).count(), 1)
         self.assertEqual(set(Notification.objects.filter(url=entry.get_absolute_url()).values_list('pk', flat=True)), notifications)
 
-    def test_manual_early_completion_or_cancellation_never_reopens_and_releases_the_slot(self):
+    def test_manual_early_completion_and_legacy_cancelled_rows_never_reopen(self):
         entry = self.booking(starts_at=self.now - timedelta(minutes=30), ends_at=self.now + timedelta(minutes=30))
         set_booking_status(self.reporter, entry, 'completed')
         cancelled = self.booking(status='cancelled', starts_at=entry.starts_at, ends_at=entry.ends_at)

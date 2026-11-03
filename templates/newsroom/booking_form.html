@@ -49,7 +49,7 @@
       <button type="button" class="button button-secondary button-small shift-day-retry" data-booking-day-retry hidden>Повторить загрузку</button>
       <ol class="shift-day-list" data-booking-day-list>
         {% for booking in day_schedule %}
-        <li class="booking-day-item shift-day-item{% if booking.status == 'cancelled' %} is-cancelled{% endif %}">
+        <li class="booking-day-item shift-day-item">
           <span class="shift-day-time">{{ booking.start_label|default:booking.start_time }} — {{ booking.end_label|default:booking.end_time }}</span>
           <strong>{{ booking.title }}</strong>
           <p class="booking-day-meta">{{ booking.kind_label }} · {{ booking.responsible }} · {{ booking.status_label }}</p>
@@ -68,5 +68,5 @@
   </aside>
 </div>
 {{ day_schedule|json_script:"booking-day-schedule-data" }}
-<script defer src="{% static 'js/booking_form.js' %}?v=20261103-booking-clock"></script>
+<script defer src="{% static 'js/booking_form.js' %}?v=20261104-booking-delete"></script>
 {% endblock %}

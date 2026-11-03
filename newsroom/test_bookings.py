@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from .models import Department, Proposal, Studio, StudioBooking
 from .permissions import assign_role, setup_roles
-from .services import save_booking, save_proposal, set_booking_status
+from .services import delete_booking, save_booking, save_proposal
 
 User = get_user_model()
 LOCAL_ZONE = ZoneInfo('Asia/Novosibirsk')
@@ -174,7 +174,7 @@ class BookingCalendarFormTests(TestCase):
         self.booking(status='completed', starts_at=self.moment(self.day, 12), ends_at=self.moment(self.day, 13))
         self.booking(starts_at=self.moment(self.day, 14), ends_at=self.moment(self.day, 15))
         cases = [('Соседний слот', '09:00', '10:00', self.studio.pk),
-                 ('После отмены', '10:00', '11:00', self.studio.pk),
+                 ('После старой отмены', '10:00', '11:00', self.studio.pk),
                  ('После завершения', '12:00', '13:00', self.studio.pk),
                  ('Другая студия', '14:00', '15:00', self.other_studio.pk)]
         for title, start, end, studio in cases:
@@ -239,14 +239,14 @@ class BookingCalendarFormTests(TestCase):
         data = response.json()
         self.assertEqual((data['date'], data['studio']), (self.day.isoformat(), self.studio.pk))
         rows = {row['id']: row for row in data['bookings']}
-        self.assertEqual(set(rows), {overnight.pk, cancelled.pk, completed.pk, recording.pk, later.pk})
+        self.assertEqual(set(rows), {overnight.pk, completed.pk, recording.pk, later.pk})
         self.assertEqual((rows[overnight.pk]['start_minute'], rows[overnight.pk]['end_minute']), (0, 60))
         self.assertEqual((rows[later.pk]['start_minute'], rows[later.pk]['end_minute']), (1380, 1440))
         self.assertIn('11.03', rows[overnight.pk]['start_label'])
         self.assertIn('13.03', rows[later.pk]['end_label'])
         self.assertTrue(rows[overnight.pk]['is_blocking'])
         self.assertTrue(rows[recording.pk]['is_blocking'])
-        self.assertFalse(rows[cancelled.pk]['is_blocking'])
+        self.assertNotIn(cancelled.pk, rows)
         self.assertFalse(rows[completed.pk]['is_blocking'])
         response = self.client.get(self.api_url, {'date': self.day.isoformat(), 'studio': self.studio.pk, 'exclude': overnight.pk})
         self.assertNotIn(overnight.pk, [row['id'] for row in response.json()['bookings']])
@@ -324,13 +324,12 @@ class BookingCalendarFormTests(TestCase):
         self.assertEqual(timezone.localtime(saved.starts_at).date(), timezone.localtime(saved.ends_at).date())
 
 
-    def test_legacy_multiday_booking_can_still_be_cancelled(self):
+    def test_legacy_multiday_booking_can_be_deleted_by_its_authorized_owner(self):
         entry = self.booking(starts_at=self.moment(self.day, 23),
                              ends_at=self.moment(self.day + timedelta(days=1), 1))
-        set_booking_status(self.reporter, entry, 'cancelled')
-        entry.refresh_from_db()
-        self.assertEqual(entry.status, 'cancelled')
-        self.assertEqual(entry.ends_at, self.moment(self.day + timedelta(days=1), 1))
+        booking_id = entry.pk
+        delete_booking(self.reporter, entry)
+        self.assertFalse(StudioBooking.objects.filter(pk=booking_id).exists())
 
     def test_producer_cannot_bypass_same_day_limit_with_a_booking_proposal(self):
         producer = User.objects.create_user(username='booking_producer')

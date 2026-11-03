@@ -63,7 +63,7 @@ function saved(id, title, start, end, overrides = {}) {
   return {
     id, title, responsible: 'Анна Волкова', responsible_id: 1,
     kind: 'audio', kind_label: 'Без видео', status,
-    status_label: {planned: 'Запланировано', recording: 'Идёт запись', completed: 'Завершено', cancelled: 'Отменено'}[status],
+    status_label: {planned: 'Запланировано', recording: 'Идёт запись', completed: 'Завершено'}[status],
     starts_at: `${startDay}T${start}:00+07:00`, ends_at: `${endDay}T${end}:00+07:00`,
     start_time: start, end_time: end, start_label: label(startDay, start), end_label: label(endDay, end),
     start_minute: startDay < day ? 0 : minute(start), end_minute: endDay > day ? 1440 : minute(end),
@@ -262,15 +262,14 @@ test('date, studio and malformed-row mismatches produce retryable errors without
 test('conflicts use blocking intervals including legacy seconds, while adjacent and inactive slots remain free', async () => {
   const h = createHarness({title: 'Проверка времени', bookings: [
     saved(1, 'Запланировано', '10:00', '11:00'),
-    saved(2, 'Отменено', '12:00', '13:00', {status: 'cancelled'}),
-    saved(3, 'Завершено', '14:00', '15:00', {status: 'completed'}),
+    saved(2, 'Завершено', '12:00', '13:00', {status: 'completed'}),
     saved(4, 'Идёт запись', '16:00', '17:00', {status: 'recording'}),
     saved(5, 'Исторические секунды', '09:00', '09:00', {
       starts_at: `${DAY}T09:00:15+07:00`, ends_at: `${DAY}T09:00:30+07:00`, start_minute: 540, end_minute: 541,
     }),
   ]});
   const cases = [['09:00', '09:01', true], ['08:59', '09:00', false], ['09:01', '09:30', false],
-    ['10:30', '11:30', true], ['11:00', '12:00', false], ['12:00', '13:00', false], ['14:00', '15:00', false], ['16:30', '17:30', true]];
+    ['10:30', '11:30', true], ['11:00', '12:00', false], ['12:00', '13:00', false], ['16:30', '17:30', true]];
   for (const [start, end, expected] of cases) {
     h.change({start_time: start, end_time: end});
     assert.equal(h.drafts()[0].classList.contains('has-conflict'), expected, `${start}–${end}`);
