@@ -103,10 +103,6 @@
 .booking-history-nav .segmented { margin-left: auto; }
 .calendar-single-day .booking-add-link { grid-column: 1 / -1; }
 .booking-form-card .form-field select { appearance: none; -webkit-appearance: none; padding-right: 42px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'%3E%3Cpath d='m2 2 5 5 5-5' stroke='%237c8792' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 14px 9px; }
-.booking-end-date { border-top: 1px solid var(--line); padding-top: 14px; margin: 0 0 20px; }
-.booking-end-date summary { color: var(--muted); cursor: pointer; font-size: 12px; line-height: 1.7; }
-.booking-end-date summary:focus-visible { outline: 2px solid #83b9ac; outline-offset: 3px; border-radius: 2px; }
-.booking-end-date .form-field { margin: 16px 0 0; }
 .booking-day-meta { margin: 8px 0 0; color: #8b9b91; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
 .booking-day-item.is-cancelled { background: #f4f6f5; border-left-color: #b8c1bc; }
 .booking-day-item.is-cancelled strong, .booking-day-item.is-cancelled .shift-day-time, .booking-day-item.is-cancelled .booking-day-meta { color: #929e96; }

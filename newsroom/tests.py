@@ -43,7 +43,7 @@ class NewsroomTestCase(TestCase):
         self.media_override = override_settings(MEDIA_ROOT=self.media.name)
         self.media_override.enable()
         self.addCleanup(self.media_override.disable)
-        self.start = timezone.now() + timedelta(days=1)
+        self.start = (timezone.localtime() + timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
 
     def booking(self, **kwargs):
         values = dict(title='Запись интервью', studio=self.studio, starts_at=self.start,
@@ -121,9 +121,8 @@ class BookingTests(NewsroomTestCase):
         response = self.client.post(reverse('newsroom:booking_create'), {
             'title': 'Прямой эфир', 'description': 'Интервью', 'studio': self.studio.pk,
             'date': timezone.localtime(self.start).date().isoformat(),
-            'start_time': timezone.localtime(self.start).strftime('%H:%M'),
-            'end_time': timezone.localtime(self.start + timedelta(hours=1)).strftime('%H:%M'),
-            'end_date': timezone.localtime(self.start + timedelta(hours=1)).date().isoformat(),
+            'start_time': '10:00',
+            'end_time': '11:00',
             'kind': 'audio', 'responsible': self.users['radio_reporter'].pk,
         })
         self.assertEqual(response.status_code, 302)

@@ -70,7 +70,7 @@ function saved(id, title, start, end, overrides = {}) {
   };
 }
 
-function createHarness({bookings = [], date = DAY, studio = '1', editingId = '', title = '', responsible = '1', start = '10:00', end = '13:00', endDate = ''} = {}) {
+function createHarness({bookings = [], date = DAY, studio = '1', editingId = '', title = '', responsible = '1', start = '10:00', end = '13:00'} = {}) {
   const fields = {
     studio: selectField([['', 'Выберите студию'], ['1', 'Студия №1'], ['2', 'Студия №2']], studio),
     responsible: selectField([['', 'Выберите ответственного'], ['1', 'Анна Волкова'], ['2', 'Мария Белова']], responsible),
@@ -78,7 +78,6 @@ function createHarness({bookings = [], date = DAY, studio = '1', editingId = '',
     date: Object.assign(new Element('input'), {value: date}),
     start_time: Object.assign(new Element('input'), {value: start}),
     end_time: Object.assign(new Element('input'), {value: end}),
-    end_date: Object.assign(new Element('input'), {value: endDate}),
     title: Object.assign(new Element('input'), {value: title}),
   };
   const form = new Element('form');
@@ -141,8 +140,9 @@ test('an initially incomplete draft updates title, responsible, kind and time li
   assert.equal(h.requests.length, 0);
 });
 
-test('invalid fields remain incomplete, explicit overnight ranges work, and invalid day or studio clears the preview', () => {
+test('same-day invalid ranges remain incomplete and invalid day or studio clears the preview', () => {
   const h = createHarness({title: 'Подкаст'});
+  assert.equal('end_date' in h.fields, false, 'the form has no end-date input');
   for (const values of [{start_time: '', end_time: '13:00'}, {start_time: '25:00', end_time: '26:00'}, {start_time: '10:00', end_time: '10:00'}, {start_time: '13:00', end_time: '12:00'}]) {
     h.change(values);
     assert.equal(h.drafts().length, 1);
@@ -151,12 +151,13 @@ test('invalid fields remain incomplete, explicit overnight ranges work, and inva
   }
   h.change({start_time: '', end_time: ''});
   assert.equal(timeOf(h.drafts()[0]).textContent, '--:-- — --:--');
-  h.change({start_time: '23:00', end_time: '01:00', end_date: '2026-11-04'});
-  assert.equal(h.drafts()[0].classList.contains('is-incomplete'), false);
-  assert.equal(timeOf(h.drafts()[0]).textContent, '23:00 — 04.11 · 01:00');
-  h.change({end_date: '2026-11-02'});
+  h.change({start_time: '23:00', end_time: '01:00'});
   assert.equal(h.drafts()[0].classList.contains('is-incomplete'), true);
+  assert.equal(timeOf(h.drafts()[0]).textContent, '23:00 — 01:00');
   assert.match(badgeOf(h.drafts()[0]).textContent, /Проверьте время/);
+  assert.equal(h.parts.conflict.hidden, true);
+  h.change({start_time: '22:00', end_time: '23:00'});
+  assert.equal(h.drafts()[0].classList.contains('is-incomplete'), false);
   for (const values of [{date: '2026-02-30'}, {studio: ''}]) {
     const invalid = createHarness({bookings: [saved(1, 'Сохранено', '08:00', '09:00')]});
     invalid.change(values);
@@ -271,17 +272,16 @@ test('conflicts use blocking intervals including legacy seconds, while adjacent 
   assert.equal(h.parts.conflict.hidden, true);
 });
 
-test('multiday and carry-in intervals show their dates and warn only for true overlaps', () => {
+test('legacy carry-in intervals remain readable while new drafts must end the same day', () => {
   const h = createHarness({title: 'Ночная запись', start: '00:30', end: '01:30', bookings: [
     saved(1, 'С прошлой ночи', '23:00', '01:00', {startDay: '2026-11-02'}),
     saved(2, 'До следующего дня', '23:00', '01:00', {endDay: '2026-11-04'}),
   ]});
   assert.equal(h.parts.conflict.hidden, false);
   assert.match(timeOf(h.entries()[0]).textContent, /02\.11 · 23:00/);
-  h.change({start_time: '22:30', end_time: '00:30', end_date: '2026-11-04'});
+  h.change({start_time: '23:00', end_time: '23:30'});
   assert.equal(h.parts.conflict.hidden, false);
-  assert.equal(timeOf(h.drafts()[0]).textContent, '22:30 — 04.11 · 00:30');
-  h.change({start_time: '21:00', end_time: '23:00', end_date: ''});
+  h.change({start_time: '21:00', end_time: '23:00'});
   assert.equal(h.parts.conflict.hidden, true);
   h.change({start_time: '23:00', end_time: '01:00'});
   assert.equal(h.drafts()[0].classList.contains('is-incomplete'), true);

@@ -293,8 +293,6 @@ def booking_create(request, pk=None):
     responsible_id = _booking_positive_id(form["responsible"].value())
     responsible = form.fields["responsible"].queryset.filter(pk=responsible_id).first() if responsible_id else None
     title = "Изменить бронирование" if pk else "Забронировать студию"
-    ending_value = form["end_date"].value()
-    ending_day = _calendar_date(ending_value.isoformat() if hasattr(ending_value, "isoformat") else ending_value)
     draft_times = {}
     for name in ("start_time", "end_time"):
         try:
@@ -310,14 +308,12 @@ def booking_create(request, pk=None):
         "day_schedule": _booking_schedule(preview_day, preview_studio.pk, pk) if preview_studio else [],
         "schedule_date": preview_day, "schedule_studio": preview_studio,
         "schedule_url": reverse("newsroom:booking_day_schedule"), "editing_booking_id": pk,
-        "booking_range_multiday": bool((ending_day and ending_day != preview_day) or (form.is_bound and "end_date" in form.errors)),
         "draft_title": str(form["title"].value() or "").strip() or ("Изменяемая запись" if pk else "Новая запись"),
         "draft_responsible": (responsible.get_full_name() or responsible.username) if responsible else "Ответственный не выбран",
         "draft_start_time": draft_times["start_time"], "draft_end_time": draft_times["end_time"],
         "draft_start_label": draft_times["start_time"],
-        "draft_end_label": f"{ending_day:%d.%m} · {draft_times['end_time']}" if ending_day and ending_day != preview_day else draft_times["end_time"],
+        "draft_end_label": draft_times["end_time"],
         "draft_kind_label": dict(StudioBooking.Kind.choices).get(form["kind"].value(), "Тип записи не выбран"),
-        "draft_end_date": ending_day.isoformat() if ending_day else "",
     })
 
 

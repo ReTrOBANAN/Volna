@@ -23,10 +23,6 @@
           {% include 'newsroom/partials/form_field.html' with field=form.end_time %}
         </div>
       </fieldset>
-      <details class="booking-end-date"{% if booking_range_multiday or form.end_date.errors %} open{% endif %}>
-        <summary>Запись на несколько дней</summary>
-        {% include 'newsroom/partials/form_field.html' with field=form.end_date %}
-      </details>
       {% include 'newsroom/partials/form_field.html' with field=form.description %}
       <div class="form-actions">
         <button class="button button-primary" type="submit">{{ submit_label }}</button>
@@ -72,5 +68,5 @@
   </aside>
 </div>
 {{ day_schedule|json_script:"booking-day-schedule-data" }}
-<script defer src="{% static 'js/booking_form.js' %}?v=20261103-booking-form"></script>
+<script defer src="{% static 'js/booking_form.js' %}?v=20261103-booking-one-day"></script>
 {% endblock %}

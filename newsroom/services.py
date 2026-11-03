@@ -35,6 +35,14 @@ def notify_engineers(booking):
     notify(users_with_roles(Role.ENGINEER), 'Новая видеосъёмка в студии', booking.title, booking.get_absolute_url())
 
 
+def _validate_booking_day(starts_at, ends_at):
+    if starts_at and ends_at:
+        start = timezone.localtime(starts_at) if timezone.is_aware(starts_at) else starts_at
+        end = timezone.localtime(ends_at) if timezone.is_aware(ends_at) else ends_at
+        if start.date() != end.date():
+            raise ValidationError('Бронирование должно начинаться и заканчиваться в один день.')
+
+
 @transaction.atomic
 def save_booking(user, booking):
     creating = booking.pk is None
@@ -60,6 +68,7 @@ def save_booking(user, booking):
         booking.responsible = user
     if not booking.responsible_id or not booking.responsible.is_active:
         raise ValidationError('Выберите активного ответственного сотрудника.')
+    _validate_booking_day(booking.starts_at, booking.ends_at)
     booking.full_clean()
     booking.save()
     audit(user, booking, 'Создание брони' if creating else 'Изменение брони')
@@ -286,6 +295,8 @@ def save_proposal(user, proposal):
     proposal.reviewed_by = None
     proposal.event = None
     proposal.booking = None
+    if proposal.kind == 'booking':
+        _validate_booking_day(proposal.starts_at, proposal.ends_at)
     proposal.full_clean()
     proposal.save()
     recipients = users_with_roles(Role.DIRECTOR, Role.TV_CHIEF, *([Role.RADIO_CHIEF] if proposal.kind == 'booking' else []))

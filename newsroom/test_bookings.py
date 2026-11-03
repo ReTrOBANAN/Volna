@@ -5,12 +5,14 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Department, Studio, StudioBooking
+from .models import Department, Proposal, Studio, StudioBooking
 from .permissions import assign_role, setup_roles
+from .services import save_booking, save_proposal, set_booking_status
 
 User = get_user_model()
 LOCAL_ZONE = ZoneInfo('Asia/Novosibirsk')
@@ -65,7 +67,7 @@ class BookingCalendarFormTests(TestCase):
         values = {
             'title': 'Новая запись', 'description': 'Интервью', 'studio': self.studio.pk,
             'date': self.day.isoformat(), 'start_time': '10:00', 'end_time': '11:00',
-            'end_date': '', 'kind': 'audio', 'responsible': self.reporter.pk,
+            'kind': 'audio', 'responsible': self.reporter.pk,
         }
         values.update(kwargs)
         return values
@@ -85,7 +87,8 @@ class BookingCalendarFormTests(TestCase):
         self.assertEqual(str(form['studio'].value()), str(self.other_studio.pk))
         self.assertContains(response, 'name="start_time"')
         self.assertContains(response, 'name="end_time"')
-        self.assertContains(response, 'name="end_date"')
+        self.assertNotContains(response, 'name="end_date"')
+        self.assertNotIn('end_date', form.fields)
         self.assertNotContains(response, 'name="starts_at"')
         self.assertNotContains(response, 'type="datetime-local"')
 
@@ -105,7 +108,7 @@ class BookingCalendarFormTests(TestCase):
         self.assertFalse(entry.montage_completed)
         self.assertEqual(entry.created_by, self.reporter)
 
-    def test_edit_initial_uses_instance_and_preserves_explicit_multiday_interval(self):
+    def test_legacy_multiday_record_changes_only_after_a_valid_same_day_edit(self):
         last_day = self.day + timedelta(days=2)
         entry = self.booking(studio=self.other_studio, starts_at=self.moment(self.day, 23), ends_at=self.moment(last_day, 6, 30))
         url = reverse('newsroom:booking_edit', args=[entry.pk])
@@ -113,15 +116,23 @@ class BookingCalendarFormTests(TestCase):
         form = response.context['form']
         self.assertEqual(str(form['date'].value()), self.day.isoformat())
         self.assertEqual(str(form['studio'].value()), str(self.other_studio.pk))
-        self.assertEqual(str(form['end_date'].value()), last_day.isoformat())
+        self.assertNotIn('end_date', form.fields)
         self.assertIn('23:00', form['start_time'].as_widget())
         self.assertIn('06:30', form['end_time'].as_widget())
+        entry.refresh_from_db()
+        self.assertEqual(entry.ends_at, self.moment(last_day, 6, 30))
+        response = self.client.post(url, self.data(studio=self.other_studio.pk, start_time='23:00', end_time='06:30'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('end_time', response.context['form'].errors)
+        entry.refresh_from_db()
+        self.assertEqual(entry.ends_at, self.moment(last_day, 6, 30))
         response = self.client.post(url, self.data(title='Изменённая запись', studio=self.other_studio.pk,
-                                                   start_time='23:00', end_time='07:00', end_date=last_day.isoformat()))
+                                                   start_time='22:00', end_time='23:00'))
         self.assertEqual(response.status_code, 302)
         entry.refresh_from_db()
         self.assertEqual(entry.title, 'Изменённая запись')
-        self.assertEqual(entry.ends_at, self.moment(last_day, 7))
+        self.assertEqual(entry.starts_at, self.moment(self.day, 22))
+        self.assertEqual(entry.ends_at, self.moment(self.day, 23))
         self.assertEqual(entry.created_by, self.reporter)
 
     def test_invalid_bound_edits_retain_input_without_overwriting_saved_booking(self):
@@ -285,3 +296,44 @@ class BookingCalendarFormTests(TestCase):
                 self.assertEqual(urlsplit(response.url).path, self.calendar_url)
                 self.assertEqual(parse_qs(urlsplit(response.url).query)['date'], [expected])
                 self.assertEqual(parse_qs(urlsplit(response.url).query)['view'], [view])
+
+
+    def test_cross_day_booking_is_rejected_by_form_and_service_using_local_calendar_days(self):
+        next_day = self.day + timedelta(days=1)
+        for start, end in [('23:00', '01:00'), ('10:00', '11:00')]:
+            with self.subTest(start=start, end=end):
+                response = self.client.post(self.create_url, self.data(start_time=start, end_time=end, end_date=next_day.isoformat()))
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context['form'].non_field_errors())
+                self.assertFalse(StudioBooking.objects.exists())
+        night = StudioBooking(title='Через полночь', studio=self.studio, responsible=self.reporter,
+                              starts_at=self.moment(self.day, 23), ends_at=self.moment(next_day, 1))
+        with self.assertRaises(ValidationError):
+            save_booking(self.reporter, night)
+        self.assertFalse(StudioBooking.objects.exists())
+        same_day = StudioBooking(title='Один местный день', studio=self.studio, responsible=self.reporter,
+                                 starts_at=self.moment(self.day, 6, 30), ends_at=self.moment(self.day, 8))
+        saved = save_booking(self.reporter, same_day)
+        saved.refresh_from_db()
+        self.assertNotEqual(saved.starts_at.date(), saved.ends_at.date(), 'UTC dates may differ within one local day')
+        self.assertEqual(timezone.localtime(saved.starts_at).date(), timezone.localtime(saved.ends_at).date())
+
+
+    def test_legacy_multiday_booking_can_still_be_cancelled(self):
+        entry = self.booking(starts_at=self.moment(self.day, 23),
+                             ends_at=self.moment(self.day + timedelta(days=1), 1))
+        set_booking_status(self.reporter, entry, 'cancelled')
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, 'cancelled')
+        self.assertEqual(entry.ends_at, self.moment(self.day + timedelta(days=1), 1))
+
+    def test_producer_cannot_bypass_same_day_limit_with_a_booking_proposal(self):
+        producer = User.objects.create_user(username='booking_producer')
+        assign_role(producer, 'producer', Department.objects.get(slug='production'))
+        proposal = Proposal(kind='booking', title='Предложение через полночь', studio=self.studio,
+                            starts_at=self.moment(self.day, 23),
+                            ends_at=self.moment(self.day + timedelta(days=1), 1))
+        with self.assertRaises(ValidationError):
+            save_proposal(producer, proposal)
+        self.assertFalse(Proposal.objects.exists())
+        self.assertFalse(StudioBooking.objects.exists())

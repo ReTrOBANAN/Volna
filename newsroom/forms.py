@@ -131,15 +131,9 @@ class BookingForm(forms.ModelForm):
         label="До", input_formats=["%H:%M", "%H:%M:%S"],
         widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": "60"}),
     )
-    end_date = forms.DateField(
-        label="Дата окончания", required=False,
-        help_text="Если запись длится несколько дней",
-        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "min": "1970-01-01", "max": "2200-12-31"}),
-    )
-
     class Meta:
         model = StudioBooking
-        fields = ["title", "description", "studio", "date", "start_time", "end_time", "end_date", "kind", "responsible"]
+        fields = ["title", "description", "studio", "date", "start_time", "end_time", "kind", "responsible"]
         labels = {
             "title": "Название записи", "description": "Описание", "studio": "Студия",
             "kind": "Тип записи",
@@ -157,7 +151,6 @@ class BookingForm(forms.ModelForm):
             end = timezone.localtime(self.instance.ends_at)
             self.initial.update(
                 date=start.date(), start_time=start.time(), end_time=end.time(),
-                end_date=end.date() if end.date() != start.date() else None,
             )
         else:
             self.fields["responsible"].initial = user
@@ -173,9 +166,6 @@ class BookingForm(forms.ModelForm):
 
     def clean_date(self):
         return self._calendar_day(self.cleaned_data["date"])
-
-    def clean_end_date(self):
-        return self._calendar_day(self.cleaned_data.get("end_date"))
 
     def map_model_errors(self, error):
         """Model/service errors refer to stored datetimes; the form uses split fields."""
@@ -194,23 +184,21 @@ class BookingForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
+        if self.data.get("end_date"):
+            self.add_error(None, "Бронирование должно начинаться и заканчиваться в один день.")
         day = data.get("date")
-        if not day or "end_date" in self.errors or any(field not in data for field in ("start_time", "end_time")):
-            return data
-        ending_day = data.get("end_date") or day
-        if ending_day < day:
-            self.add_error("end_date", "Дата окончания не может быть раньше даты записи.")
+        if not day or any(field not in data for field in ("start_time", "end_time")):
             return data
         datetimes = {}
-        for field, local_day in (("start_time", day), ("end_time", ending_day)):
+        for field in ("start_time", "end_time"):
             try:
-                datetimes[field] = forms.DateTimeField().clean(datetime.combine(local_day, data[field]))
+                datetimes[field] = forms.DateTimeField().clean(datetime.combine(day, data[field]))
             except ValidationError as exc:
                 self.add_error(field, exc)
         if len(datetimes) != 2:
             return data
         if datetimes["end_time"] <= datetimes["start_time"]:
-            self.add_error("end_time", "Время «До» должно быть позже времени «От». Для записи на несколько дней укажите дату окончания.")
+            self.add_error("end_time", "Время «До» должно быть позже времени «От». Бронирование проходит в пределах одного дня.")
             return data
         self.instance.starts_at = datetimes["start_time"]
         self.instance.ends_at = datetimes["end_time"]
