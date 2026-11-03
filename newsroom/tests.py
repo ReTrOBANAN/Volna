@@ -201,7 +201,10 @@ class BookingTests(NewsroomTestCase):
         self.assertTrue(Notification.objects.filter(recipient=self.users['engineer'], url=booking.get_absolute_url()).exists())
 
     def test_only_claimed_engineer_can_mark_montage(self):
-        booking = save_booking(self.users['radio_reporter'], self.booking(kind='video'))
+        booking = save_booking(self.users['radio_reporter'], self.booking(
+            kind='video', starts_at=timezone.now() - timedelta(minutes=15),
+            ends_at=timezone.now() + timedelta(minutes=45),
+        ))
         with self.assertRaises(PermissionDenied):
             complete_booking_montage(self.users['engineer'], booking)
         claim_booking(self.users['engineer'], booking)
@@ -214,7 +217,10 @@ class BookingTests(NewsroomTestCase):
         self.assertEqual(booking.status, 'completed')
 
     def test_completed_booking_sends_studio_available_notification(self):
-        booking = save_booking(self.users['radio_reporter'], self.booking())
+        booking = save_booking(self.users['radio_reporter'], self.booking(
+            starts_at=timezone.now() - timedelta(minutes=15),
+            ends_at=timezone.now() + timedelta(minutes=45),
+        ))
         set_booking_status(self.users['radio_reporter'], booking, 'completed')
         self.assertTrue(Notification.objects.filter(url=booking.get_absolute_url()).exists())
 

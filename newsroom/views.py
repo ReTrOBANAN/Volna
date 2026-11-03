@@ -360,7 +360,7 @@ def booking_detail(request, pk):
     booking = get_object_or_404(StudioBooking.objects.select_related("studio", "responsible", "engineer", "created_by"), pk=pk)
     editable = can_edit_booking(request.user, booking)
     actions = []
-    if editable and booking.status in ("planned", "recording"):
+    if editable and booking.status == "recording":
         actions.append({"action": "status", "status": "completed", "label": "Завершить запись"})
     if role_of(request.user) == "engineer" and booking.kind == "video" and not booking.engineer_id and booking.status in ("planned", "recording"):
         actions.append({"action": "claim", "label": "Откликнуться на видеосъёмку"})

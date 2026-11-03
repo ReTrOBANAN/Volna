@@ -162,7 +162,7 @@ def set_booking_status(user, booking, status):
             raise PermissionDenied('Вы не можете изменять статус этой брони.')
         if status == 'recording':
             raise ValidationError('Запись начинается автоматически по расписанию. Вручную начать запись нельзя.')
-        allowed = {'planned': {'completed'}, 'recording': {'completed'}}
+        allowed = {'recording': {'completed'}}
         if status not in allowed.get(booking.status, set()):
             raise ValidationError('Этот переход статуса недоступен.')
         previous = booking.status

@@ -134,6 +134,49 @@ class BookingClockTests(TestCase):
         self.assertEqual(self.state(entry), 'planned')
         self.assertFalse(any(action.get('status') == 'recording' for action in response.context['actions']))
 
+    def test_completion_button_is_available_only_from_start_until_end(self):
+        entry = self.booking()
+        for tick, expected_status, available in [
+            (entry.starts_at - timedelta(microseconds=1), 'planned', False),
+            (entry.starts_at, 'recording', True),
+            (entry.ends_at, 'completed', False),
+        ]:
+            with self.subTest(tick=tick):
+                self.mock_now.return_value = tick
+                response = self.client.get(entry.get_absolute_url())
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(self.state(entry), expected_status)
+                self.assertEqual(any(action.get('status') == 'completed'
+                                     for action in response.context['actions']), available)
+                if available:
+                    self.assertContains(response, 'Завершить запись')
+                else:
+                    self.assertNotContains(response, 'Завершить запись')
+        with self.assertRaises(ValidationError):
+            set_booking_status(self.users['radio_chief'], entry, 'completed')
+
+    def test_owner_and_manager_cannot_finish_future_recording_but_can_finish_at_start(self):
+        for actor in [self.reporter, self.users['radio_chief']]:
+            with self.subTest(actor=actor.username):
+                self.mock_now.return_value = self.now
+                # A stale status must not bypass the actual schedule boundary.
+                entry = self.booking(status='recording')
+                with self.assertRaises(ValidationError):
+                    set_booking_status(actor, entry, 'completed')
+                self.assertEqual(self.state(entry), 'planned')
+                self.client.force_login(actor)
+                url = reverse('newsroom:booking_action', args=[entry.pk])
+                response = self.client.post(url, {'action': 'status', 'status': 'completed'}, follow=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, 'message-error')
+                self.assertEqual(self.state(entry), 'planned')
+                self.mock_now.return_value = entry.starts_at
+                response = self.client.post(url, {'action': 'status', 'status': 'completed'}, follow=True)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(self.state(entry), 'completed')
+                self.assertEqual(AuditEntry.objects.filter(object_type='studiobooking', object_id=entry.pk,
+                                                          actor=actor, action='Статус: recording → completed').count(), 1)
+
     def test_middleware_catches_up_for_authorized_viewers_but_not_forbidden_or_anonymous_requests(self):
         entry = self.booking(starts_at=self.now - timedelta(hours=2), ends_at=self.now - timedelta(hours=1))
         self.client.force_login(self.users['operator'])
