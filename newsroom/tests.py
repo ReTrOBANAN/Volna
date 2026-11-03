@@ -36,8 +36,8 @@ class NewsroomTestCase(TestCase):
             user = User.objects.create_user(username=role, password=TEST_PASSWORD, first_name=f'Сотрудник {role}')
             assign_role(user, role, Department.objects.get(slug=ROLE_DEPARTMENTS[role]))
             cls.users[role] = user
-        cls.studio = Studio.objects.create(name='Студия №1')
-        cls.other_studio = Studio.objects.create(name='Студия №2')
+        cls.studio = Studio.objects.create(name='Новая студия')
+        cls.other_studio = Studio.objects.create(name='Старая студия')
 
     def setUp(self):
         frozen = patch('django.utils.timezone.now', return_value=datetime(2027, 3, 1, 3, tzinfo=datetime_timezone.utc))

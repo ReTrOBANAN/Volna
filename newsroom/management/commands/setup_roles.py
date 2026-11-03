@@ -8,6 +8,6 @@ class Command(BaseCommand):
         from newsroom.permissions import setup_roles
         setup_roles()
         from newsroom.models import Studio
-        for name in ["Студия №1", "Студия №2"]:
+        for name in ["Новая студия", "Старая студия"]:
             Studio.objects.get_or_create(name=name)
         self.stdout.write(self.style.SUCCESS('Роли, подразделения и студии настроены.'))

@@ -53,8 +53,8 @@ class Command(BaseCommand):
             elif role_of(user) != role:
                 raise CommandError(f'Логин {username} занят аккаунтом без ожидаемой демонстрационной роли. Данные не изменены.')
             accounts[role] = user
-        studio1, _ = Studio.objects.get_or_create(name='Студия №1')
-        studio2, _ = Studio.objects.get_or_create(name='Студия №2')
+        studio1, _ = Studio.objects.get_or_create(name='Новая студия')
+        studio2, _ = Studio.objects.get_or_create(name='Старая студия')
         today = timezone.localdate()
         monday = today - timedelta(days=today.weekday())
         for index in range(14):
