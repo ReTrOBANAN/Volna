@@ -11,6 +11,7 @@ const source = readFileSync(path.join(__dirname, '../static/js/booking_form.js')
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const DAY = '2026-11-03';
 const minute = value => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+class CustomEvent { constructor(type, options = {}) { this.type = type; this.detail = options.detail; } }
 
 class Element {
   constructor(tagName = 'div') {
@@ -39,7 +40,7 @@ class Element {
   replaceChildren(...children) { this._text = ''; this.children = children; }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   addEventListener(type, callback) { (this.listeners[type] ||= []).push(callback); }
-  dispatch(type) { for (const callback of this.listeners[type] || []) callback({target: this}); }
+  dispatch(type, values = {}) { for (const callback of this.listeners[type] || []) callback({target: this, type, ...values}); }
 }
 
 function selectField(values, selected) {
@@ -90,16 +91,18 @@ function createHarness({bookings = [], date = DAY, studio = '1', editingId = '',
   const embedded = Object.assign(new Element('script'), {textContent: JSON.stringify(bookings)});
   const requests = [];
   const fetch = (url, options) => new Promise((resolve, reject) => requests.push({url: String(url), options, resolve, reject}));
+  const document = new Element('document');
+  document.querySelector = selector => selector === '[data-booking-form]' ? form : selector === '[data-booking-day-schedule]' ? panel : null;
+  document.getElementById = id => id === 'booking-day-schedule-data' ? embedded : null;
+  document.createElement = tag => new Element(tag);
+  document.events = [];
+  document.dispatchEvent = event => { document.events.push(event); document.dispatch(event.type, event); return true; };
   vm.runInNewContext(source, {
-    document: {
-      querySelector: selector => selector === '[data-booking-form]' ? form : selector === '[data-booking-day-schedule]' ? panel : null,
-      getElementById: id => id === 'booking-day-schedule-data' ? embedded : null,
-      createElement: tag => new Element(tag),
-    },
-    window: {location: {origin: 'http://localhost:8000'}}, fetch, AbortController, URL, Intl, Date,
+    document,
+    window: {location: {origin: 'http://localhost:8000'}}, fetch, AbortController, URL, Intl, Date, CustomEvent,
   }, {filename: 'static/js/booking_form.js'});
   return {
-    fields, form, panel, parts, requests,
+    fields, form, panel, parts, requests, document,
     change(values, event = 'input') {
       for (const [name, value] of Object.entries(values)) fields[name].value = value;
       form.dispatch(event);
@@ -228,6 +231,13 @@ test('loading failures clear stale slots and retry preserves the local draft', a
   assert.equal(h.parts.retry.hidden, true);
   assert.equal(h.parts.status.classList.contains('is-error'), false);
   assert.equal(titleOf(h.drafts()[0]).textContent, 'Локальная правка');
+  h.document.dispatchEvent(new CustomEvent('booking-statuses-changed'));
+  assert.equal(h.requests.length, 3, 'confirmed status changes refresh the current form schedule');
+  assert.equal(titleOf(h.drafts()[0]).textContent, 'Локальная правка');
+  await h.respond(2, {studio: 2, bookings: [saved(9, 'Обновлённый статус', '08:00', '09:00', {status: 'completed'})]});
+  assert.equal(titleOf(h.drafts()[0]).textContent, 'Локальная правка');
+  assert.equal(h.form.bookingStatusSnapshot[0].status, 'completed');
+  assert.equal(h.document.events.at(-1).type, 'booking-schedule-updated');
 });
 
 test('date, studio and malformed-row mismatches produce retryable errors without hiding the draft', async () => {

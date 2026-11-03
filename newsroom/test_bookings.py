@@ -1,8 +1,10 @@
 """Studio date/range forms and their scoped daily schedule keep server guarantees."""
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone as datetime_timezone
 from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlencode, urlsplit
 from zoneinfo import ZoneInfo
+
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -43,6 +45,9 @@ class BookingCalendarFormTests(TestCase):
         cls.other_studio = Studio.objects.create(name='Студия формы №2')
 
     def setUp(self):
+        frozen = patch('django.utils.timezone.now', return_value=datetime(2027, 3, 1, 3, tzinfo=datetime_timezone.utc))
+        frozen.start()
+        self.addCleanup(frozen.stop)
         self.reporter = self.users['radio_reporter']
         self.chief = self.users['radio_chief']
         self.client.force_login(self.reporter)

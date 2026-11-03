@@ -1,6 +1,8 @@
 """Successful actions stay quiet; redirected errors remain visible and safe inline."""
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from html.parser import HTMLParser
+
+from unittest.mock import patch
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -44,6 +46,9 @@ class InlineMessageTests(TestCase):
         assign_role(cls.user, 'radio_chief', Department.objects.get(slug='radio'))
 
     def setUp(self):
+        frozen = patch('django.utils.timezone.now', return_value=datetime(2027, 3, 1, 3, tzinfo=datetime_timezone.utc))
+        frozen.start()
+        self.addCleanup(frozen.stop)
         self.client.force_login(self.user)
 
     def assertNoSideMessages(self, response):

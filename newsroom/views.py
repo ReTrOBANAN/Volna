@@ -196,7 +196,40 @@ def bookings(request):
         "days": [start + timedelta(days=i) for i in range(length)], "start": start,
         "end": end - timedelta(days=1), "view_mode": mode, "selected_date": day,
         "previous_date": start - timedelta(days=length), "next_date": end,
+        "booking_status_watch": _booking_watch(entries),
     })
+
+
+def _booking_status_rows(entries):
+    return [{
+        "id": entry.pk, "status": entry.status,
+        "starts_at": entry.starts_at.isoformat(), "ends_at": entry.ends_at.isoformat(),
+    } for entry in entries]
+
+
+def _booking_watch(entries):
+    return {
+        "url": reverse("newsroom:booking_statuses"), "server_now": timezone.now().isoformat(),
+        "bookings": _booking_status_rows(entry for entry in entries if entry.status in ("planned", "recording")),
+    }
+
+
+@login_required
+@require_GET
+def booking_statuses(request):
+    require_capability(request.user, "bookings_view")
+    values = request.GET.get("ids", "").split(",") if request.GET.get("ids") else []
+    ids = [_booking_positive_id(value) for value in values] if len(values) <= 1000 else [None]
+    now = timezone.now()
+    if any(value is None for value in ids):
+        payload, status = {"error": "Укажите корректные идентификаторы бронирований."}, 400
+    else:
+        services.sync_booking_statuses(now=now, booking_ids=ids)
+        entries = StudioBooking.objects.filter(pk__in=ids).order_by("pk")
+        payload, status = {"server_now": now.isoformat(), "bookings": _booking_status_rows(entries)}, 200
+    response = JsonResponse(payload, status=status, json_dumps_params={"ensure_ascii": False})
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 def _booking_positive_id(value):
@@ -301,11 +334,12 @@ def booking_create(request, pk=None):
             draft_times[name] = "--:--"
         else:
             draft_times[name] = value.strftime("%H:%M")
+    day_schedule = _booking_schedule(preview_day, preview_studio.pk, pk) if preview_studio else []
     return render(request, "newsroom/booking_form.html", {
         "form": form, "title": title, "page_title": title,
         "submit_label": "Сохранить изменения" if pk else "Забронировать",
         "cancel_url": f"{reverse('newsroom:bookings')}?date={period.isoformat()}&view={mode}",
-        "day_schedule": _booking_schedule(preview_day, preview_studio.pk, pk) if preview_studio else [],
+        "day_schedule": day_schedule,
         "schedule_date": preview_day, "schedule_studio": preview_studio,
         "schedule_url": reverse("newsroom:booking_day_schedule"), "editing_booking_id": pk,
         "draft_title": str(form["title"].value() or "").strip() or ("Изменяемая запись" if pk else "Новая запись"),
@@ -314,6 +348,10 @@ def booking_create(request, pk=None):
         "draft_start_label": draft_times["start_time"],
         "draft_end_label": draft_times["end_time"],
         "draft_kind_label": dict(StudioBooking.Kind.choices).get(form["kind"].value(), "Тип записи не выбран"),
+        "booking_status_watch": {
+            "url": reverse("newsroom:booking_statuses"), "server_now": timezone.now().isoformat(),
+            "bookings": day_schedule,
+        },
     })
 
 
@@ -324,7 +362,7 @@ def booking_detail(request, pk):
     editable = can_edit_booking(request.user, booking)
     actions = []
     if editable and booking.status not in ("completed", "cancelled"):
-        for status, label in [("recording", "Начать запись"), ("completed", "Завершить запись"), ("cancelled", "Отменить бронь")]:
+        for status, label in [("completed", "Завершить запись"), ("cancelled", "Отменить бронь")]:
             if booking.status != status:
                 actions.append({"action": "status", "status": status, "label": label})
     if role_of(request.user) == "engineer" and booking.kind == "video" and not booking.engineer_id and booking.status in ("planned", "recording"):
@@ -333,6 +371,7 @@ def booking_detail(request, pk):
         actions.append({"action": "montage", "label": "Отметить «Смонтировано»"})
     return render(request, "newsroom/booking_detail.html", {
         "page_title": booking.title, "booking": booking, "can_edit": editable, "actions": actions,
+        "booking_status_watch": _booking_watch([booking]),
     })
 
 

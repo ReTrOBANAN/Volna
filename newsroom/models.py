@@ -261,7 +261,7 @@ class Proposal(TimeRange):
 
 
 class AuditEntry(models.Model):
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True)
     object_type = models.CharField(max_length=50)
     object_id = models.PositiveBigIntegerField()
     action = models.CharField(max_length=250)

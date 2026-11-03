@@ -17,6 +17,7 @@ urlpatterns = [
     path("radio/shifts/<int:pk>/delete/", views.shift_delete, name="shift_delete"),
     path("studios/", views.bookings, name="bookings"),
     path("studios/day/", views.booking_day_schedule, name="booking_day_schedule"),
+    path("studios/statuses/", views.booking_statuses, name="booking_statuses"),
     path("studios/new/", views.booking_create, name="booking_create"),
     path("studios/<int:pk>/", views.booking_detail, name="booking_detail"),
     path("studios/<int:pk>/edit/", views.booking_create, name="booking_edit"),

@@ -1,6 +1,8 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as datetime_timezone
 from io import StringIO
 from tempfile import TemporaryDirectory
+
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -38,6 +40,9 @@ class NewsroomTestCase(TestCase):
         cls.other_studio = Studio.objects.create(name='Студия №2')
 
     def setUp(self):
+        frozen = patch('django.utils.timezone.now', return_value=datetime(2027, 3, 1, 3, tzinfo=datetime_timezone.utc))
+        frozen.start()
+        self.addCleanup(frozen.stop)
         self.media = TemporaryDirectory()
         self.addCleanup(self.media.cleanup)
         self.media_override = override_settings(MEDIA_ROOT=self.media.name)
@@ -185,7 +190,6 @@ class BookingTests(NewsroomTestCase):
 
     def test_completed_booking_sends_studio_available_notification(self):
         booking = save_booking(self.users['radio_reporter'], self.booking())
-        set_booking_status(self.users['radio_reporter'], booking, 'recording')
         set_booking_status(self.users['radio_reporter'], booking, 'completed')
         self.assertTrue(Notification.objects.filter(url=booking.get_absolute_url()).exists())
 

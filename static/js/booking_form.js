@@ -53,6 +53,11 @@
   let loadState = 'ready';
   let sequence = 0;
   let pending;
+  const announceSchedule = () => {
+    const snapshot = saved.slice();
+    form.bookingStatusSnapshot = snapshot;
+    document.dispatchEvent(new CustomEvent('booking-schedule-updated', {detail: {bookings: snapshot}}));
+  };
 
   const buildItem = item => {
     const entry = document.createElement('li');
@@ -138,6 +143,7 @@
     if (pending) pending.abort();
     const current = ++sequence;
     saved = [];
+    announceSchedule();
     if (!isDay() || !isStudio()) {
       loadState = 'invalid';
       render();
@@ -162,11 +168,13 @@
       saved = bookings;
       loadState = 'ready';
       render();
+      announceSchedule();
     } catch (error) {
       if (error.name === 'AbortError' || current !== sequence) return;
       saved = [];
       loadState = 'error';
       render();
+      announceSchedule();
     }
   };
 
@@ -180,9 +188,17 @@
   form.addEventListener('input', update);
   form.addEventListener('change', update);
   retry.addEventListener('click', () => loadSchedule(requestedDay, requestedStudio));
+  document.addEventListener('booking-statuses-changed', () => {
+    requestedDay = fields.date.value;
+    requestedStudio = fields.studio.value;
+    loadSchedule(requestedDay, requestedStudio);
+  });
   if (!initialValid || !isDay() || !isStudio() || fields.date.value !== requestedDay || fields.studio.value !== requestedStudio) {
     requestedDay = fields.date.value;
     requestedStudio = fields.studio.value;
     loadSchedule(requestedDay, requestedStudio);
-  } else render();
+  } else {
+    render();
+    announceSchedule();
+  }
 })();
