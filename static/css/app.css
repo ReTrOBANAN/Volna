@@ -108,3 +108,16 @@
 .booking-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .calendar-entry .booking-kind-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: 0 0 auto; margin: 0; opacity: 1; }
 .booking-kind-icon svg { display: block; width: 16px; height: 16px; }
+.booking-calendar .calendar-entry.planned { background: #f0f5fc; border-color: #dee7f3; border-left-color: #769ecb; color: #4f7198; }
+.booking-calendar .calendar-entry.planned strong { color: #476a92; }
+.booking-calendar .calendar-entry.planned:hover { background: #e8f0fb; color: #42668e; }
+.booking-calendar .calendar-entry.recording { background: #fceeee; border-color: #efd1d1; border-left-color: #c96f6f; color: #9b4a4a; }
+.booking-calendar .calendar-entry.recording strong { color: #8f4242; }
+.booking-calendar .calendar-entry.recording:hover { background: #f9e3e3; color: #8f4242; }
+.booking-calendar .calendar-entry.completed { background: #f2f3f5; border-color: #e1e4e8; border-left-color: #a7adb5; color: #626a75; }
+.booking-calendar .calendar-entry.completed strong { color: #505a65; }
+.booking-calendar .calendar-entry.completed:hover { background: #e9ecef; color: #636b75; }
+.booking-calendar .calendar-entry span { opacity: 1; }
+.booking-calendar-legend .legend-dot.planned { background: #769ecb; }
+.booking-calendar-legend .legend-dot.recording { background: #c96f6f; }
+.booking-calendar-legend .legend-dot.completed { background: #a7adb5; }
