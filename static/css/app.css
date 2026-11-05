@@ -105,3 +105,6 @@
 .booking-day-item.is-draft.has-conflict { border-color: #deb9b2; border-left-color: #bc8276; background: #fdf5f2; }
 .booking-conflict { font-size: 12px; }
 @media (forced-colors: active) { .booking-form-card .form-field select { appearance: auto; -webkit-appearance: auto; background-image: none; } }
+.booking-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.calendar-entry .booking-kind-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: 0 0 auto; margin: 0; opacity: 1; }
+.booking-kind-icon svg { display: block; width: 16px; height: 16px; }
