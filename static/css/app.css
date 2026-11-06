@@ -130,7 +130,7 @@
 .shift-schedule-page .shift-schedule-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .shift-schedule-page .shift-calendar .calendar-day { min-height: 176px; }
 .shift-schedule-page .calendar-day-header { padding: 10px 8px; font-size: 10px; line-height: 1.4; }
-.shift-schedule-page .shift-day-date { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 3px; }
+.shift-schedule-page .shift-day-date { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; margin-top: 3px; }
 .shift-schedule-page .shift-day-date strong { font-size: 17px; line-height: 24px; min-width: 24px; width: max-content; margin: 0; }
 .shift-schedule-page .calendar-day.today .shift-day-date strong { width: 24px; }
 .shift-schedule-page .calendar-day-body { padding: 8px; }
