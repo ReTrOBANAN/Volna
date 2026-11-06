@@ -122,9 +122,11 @@
 .booking-calendar-legend .legend-dot.recording { background: #c96f6f; }
 .booking-calendar-legend .legend-dot.completed { background: #a7adb5; }
 
-.shift-schedule-page .page-heading { margin-bottom: 20px; }
-.shift-schedule-page .page-heading .eyebrow { margin-bottom: 6px; }
-.shift-schedule-page h1 { font-size: 28px; }
+.shift-schedule-page .page-heading { margin-bottom: 12px; }
+.shift-schedule-page .page-heading > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; }
+.shift-schedule-page .page-heading .eyebrow { margin: 0; }
+.shift-schedule-page .page-heading p { flex-basis: 100%; }
+.shift-schedule-page h1 { font-size: 24px; line-height: 1.2; margin: 0; }
 .shift-schedule-page .shift-schedule-toolbar { gap: 10px; margin-bottom: 18px; }
 .shift-schedule-page .calendar-nav { flex-wrap: wrap; min-width: 0; }
 .shift-schedule-page .shift-schedule-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
