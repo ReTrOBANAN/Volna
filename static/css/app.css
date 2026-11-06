@@ -158,15 +158,8 @@
 .booking-schedule-page .calendar-single-day .calendar-day-body { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; padding: 8px; }
 
 .booking-dialog .dialog-body .detail-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-.booking-dialog .booking-actions-card { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 18px; }
-.booking-dialog .booking-actions-card .card-header { border-bottom: 0; padding: 0; flex: 0 0 auto; }
-.booking-dialog .booking-actions-card .card-header h2 { font-size: 14px; }
-.booking-dialog .booking-actions-card .card-body { padding: 0; min-width: 0; flex: 1 1 260px; }
+.booking-dialog .booking-actions-card { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; width: fit-content; max-width: 100%; justify-self: start; padding: 0; background: transparent; border: 0; box-shadow: none; }
+.booking-dialog .booking-actions-card .card-body { padding: 0; min-width: 0; flex: 0 1 auto; }
 .booking-dialog .booking-actions-card .action-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .booking-dialog .booking-actions-card .action-list form { margin: 0; max-width: 100%; }
 .booking-dialog .booking-actions-card .action-list .button { width: auto; max-width: 100%; min-height: 34px; padding: 7px 12px; font-size: 12px; }
-.booking-dialog .booking-actions-card .action-description { margin: 8px 0 0; font-size: 11px; line-height: 1.5; }
-@media (max-width: 520px) {
-  .booking-dialog .booking-actions-card .card-header,
-  .booking-dialog .booking-actions-card .card-body { flex-basis: 100%; }
-}
