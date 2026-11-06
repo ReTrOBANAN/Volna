@@ -122,28 +122,40 @@
 .booking-calendar-legend .legend-dot.recording { background: #c96f6f; }
 .booking-calendar-legend .legend-dot.completed { background: #a7adb5; }
 
-.shift-schedule-page .page-heading { margin-bottom: 12px; }
-.shift-schedule-page .page-heading .eyebrow { margin: 0 0 4px; }
-.shift-schedule-page h1 { font-size: 24px; line-height: 1.2; margin: 0; }
-.shift-schedule-page .shift-schedule-toolbar { gap: 10px; margin-bottom: 18px; }
-.shift-schedule-page .calendar-nav { flex-wrap: wrap; min-width: 0; }
-.shift-schedule-page .shift-schedule-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+:is(.shift-schedule-page, .booking-schedule-page) > .page-heading { margin-bottom: 12px; }
+:is(.shift-schedule-page, .booking-schedule-page) > .page-heading .eyebrow { margin: 0 0 4px; }
+:is(.shift-schedule-page, .booking-schedule-page) > .page-heading h1 { font-size: 24px; line-height: 1.2; margin: 0; }
+:is(.shift-schedule-page, .booking-schedule-page) .shift-schedule-toolbar { gap: 10px; margin-bottom: 18px; }
+:is(.shift-schedule-page, .booking-schedule-page) .calendar-nav { flex-wrap: wrap; min-width: 0; }
+:is(.shift-schedule-page, .booking-schedule-page) .shift-schedule-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .shift-schedule-page .shift-calendar .calendar-day { min-height: 176px; }
-.shift-schedule-page .calendar-day-header { padding: 10px 8px; font-size: 10px; line-height: 1.4; }
-.shift-schedule-page .shift-day-date { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; margin-top: 3px; }
-.shift-schedule-page .shift-day-date strong { font-size: 17px; line-height: 24px; min-width: 24px; width: max-content; margin: 0; }
-.shift-schedule-page .calendar-day.today .shift-day-date strong { width: 24px; }
-.shift-schedule-page .calendar-day-body { padding: 8px; }
-.shift-schedule-page .shift-add-link { margin: 0 0 9px; padding: 6px 7px; font-size: 11px; min-height: 30px; }
+:is(.shift-schedule-page, .booking-schedule-page) .calendar-day-header { padding: 10px 8px; font-size: 10px; line-height: 1.4; }
+:is(.shift-schedule-page, .booking-schedule-page) .shift-day-date { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; margin-top: 3px; }
+:is(.shift-schedule-page, .booking-schedule-page) .shift-day-date strong { font-size: 17px; line-height: 24px; min-width: 24px; width: max-content; margin: 0; }
+:is(.shift-schedule-page, .booking-schedule-page) .calendar-day.today .shift-day-date strong { width: 24px; }
+:is(.shift-schedule-page, .booking-schedule-page) .calendar-day-body { padding: 8px; }
+:is(.shift-schedule-page, .booking-schedule-page) .shift-add-link { margin: 0 0 9px; padding: 6px 7px; font-size: 11px; min-height: 30px; }
 .shift-schedule-page .shift-entry { padding: 8px; margin: 6px 0; }
 .shift-schedule-page .shift-entry strong { font-size: 11px; line-height: 1.4; margin-bottom: 3px; }
 .shift-schedule-page .shift-entry > span,
 .shift-schedule-page .shift-note-trigger > span { font-size: 10px; line-height: 1.4; }
 .shift-schedule-page .shift-entry .shift-employee { padding-right: 24px; }
 @media (max-width: 760px) {
-  .shift-schedule-page .shift-schedule-controls { width: 100%; }
-  .shift-schedule-page .shift-calendar-jump { width: auto; }
+  :is(.shift-schedule-page, .booking-schedule-page) .shift-schedule-controls { width: 100%; }
+  :is(.shift-schedule-page, .booking-schedule-page) .shift-calendar-jump { width: auto; }
 }
+
+.booking-schedule-page .booking-calendar { min-height: 176px; overflow: visible; }
+.booking-schedule-page .booking-calendar:not(.calendar-single-day) { grid-template-columns: repeat(7, minmax(130px, 1fr)); min-width: 910px; }
+.booking-schedule-page .booking-calendar.calendar-single-day { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.booking-schedule-page .booking-calendar .calendar-day { min-height: 176px; }
+.booking-schedule-page .booking-calendar .calendar-entry { padding: 8px; margin: 6px 0; min-height: auto; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; }
+.booking-schedule-page .booking-calendar .calendar-entry strong { font-size: 11px; line-height: 1.4; margin: 3px 0; }
+.booking-schedule-page .booking-calendar .calendar-entry > span { font-size: 10px; line-height: 1.4; margin-top: 3px; }
+.booking-schedule-page .calendar-block { margin-bottom: 18px; }
+.booking-schedule-page .calendar-block > .card-header { padding: 12px 18px; }
+.booking-schedule-page .calendar-block > .card-header h2 { font-size: 14px; }
+.booking-schedule-page .calendar-single-day .calendar-day-body { grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 10px; padding: 8px; }
 
 .booking-dialog .dialog-body .detail-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .booking-dialog .booking-actions-card { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 14px 18px; }
