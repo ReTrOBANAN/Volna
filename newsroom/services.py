@@ -3,6 +3,7 @@ from datetime import timedelta, timezone as datetime_timezone
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
@@ -35,7 +36,14 @@ def notify(recipients, title, text='', url='', available_at=None):
 
 
 def notify_engineers(booking):
-    notify(users_with_roles(Role.ENGINEER), 'Новая видеосъёмка в студии', booking.title, booking.get_absolute_url())
+    engineers = (user for user in users_with_roles(Role.ENGINEER) if role_of(user) == Role.ENGINEER)
+    notify(engineers, 'Новая видеосъёмка в студии', booking.title, booking.get_absolute_url())
+
+
+def _booking_slot_label(booking):
+    start, end = timezone.localtime(booking.starts_at), timezone.localtime(booking.ends_at)
+    end_label = end.strftime('%H:%M' if start.date() == end.date() else '%d.%m.%Y %H:%M')
+    return f'{booking.studio}, {start:%d.%m.%Y %H:%M}–{end_label}'
 
 
 def _booking_now(now=None):
@@ -111,6 +119,16 @@ def _validate_booking_day(starts_at, ends_at):
             raise ValidationError('Бронирование должно начинаться и заканчиваться в один день.')
 
 
+def _validate_booking_engineer_availability(booking, now):
+    if booking.kind != 'video' or not booking.engineer_id or booking.status not in {'planned', 'recording'}:
+        return
+    conflict = StudioBooking.objects.filter(
+        engineer_id=booking.engineer_id, kind='video', status__in=['planned', 'recording'], ends_at__gt=now,
+    ).filter(starts_at__lt=booking.ends_at, ends_at__gt=booking.starts_at).exclude(pk=booking.pk)
+    if conflict.exists():
+        raise ValidationError('У инженера уже есть запись с видео в это время. Выберите другое время или другую бронь.')
+
+
 def save_booking(user, booking):
     creating = booking.pk is None
     if creating:
@@ -138,17 +156,25 @@ def save_booking(user, booking):
             booking.montage_completed = original.montage_completed
             if original.engineer_id and booking.kind != original.kind:
                 raise ValidationError('Нельзя менять тип записи после назначения инженера.')
+        now = _booking_now()
         booking.responsible_id = booking.created_by_id
         _validate_booking_day(booking.starts_at, booking.ends_at)
         previous = booking.status
         booking.status = _booking_status_at(booking, now)
         booking.full_clean()
+        _validate_booking_engineer_availability(booking, now)
         booking.save()
         audit(user, booking, 'Создание брони' if creating else 'Изменение брони')
         if booking.status != previous:
             _record_clock_transition(booking, previous, now)
-        if booking.kind == 'video' and (creating or original.kind != 'video'):
+        if (booking.kind == 'video' and booking.status in {'planned', 'recording'} and booking.ends_at > now
+                and (creating or original.kind != 'video')):
             notify_engineers(booking)
+        if (original and original.engineer_id and booking.kind == 'video'
+                and (original.starts_at, original.ends_at, original.studio_id)
+                != (booking.starts_at, booking.ends_at, booking.studio_id)):
+            notify([booking.engineer], 'Изменено время видеозаписи',
+                   f'Запись «{booking.title}»: {_booking_slot_label(booking)}.', booking.get_absolute_url())
         return booking
 
 
@@ -189,7 +215,12 @@ def delete_booking(user, booking):
         # Keep the reviewed proposal and its decision after deleting its booking.
         Proposal.objects.filter(booking=booking).update(booking=None)
         Notification.objects.filter(url=booking.get_absolute_url()).delete()
+        engineer = booking.engineer if booking.kind == 'video' and booking.engineer_id else None
+        deleted_text = f'Удалена запись «{booking.title}»: {_booking_slot_label(booking)}.' if engineer else ''
+        calendar_url = f"{reverse('newsroom:bookings')}?date={timezone.localtime(booking.starts_at).date().isoformat()}&view=week"
         booking.delete()
+        if engineer:
+            notify([engineer], 'Бронь с видео удалена', deleted_text, calendar_url)
 
 
 def claim_booking(user, booking):
@@ -198,12 +229,34 @@ def claim_booking(user, booking):
     now = _booking_now()
     sync_booking_statuses(now=now, booking_ids=[booking.pk])
     with transaction.atomic():
-        booking = StudioBooking.objects.select_for_update().get(pk=booking.pk)
-        if booking.kind != 'video' or booking.status in {'completed', 'cancelled'} or booking.engineer_id:
-            raise ValidationError('Эта съёмка недоступна для отклика.')
+        # Authentication instances can be stale after an account is disabled or
+        # its role changes; the assignment must use the current account state.
+        user = get_user_model().objects.select_related('employee').filter(pk=user.pk).first()
+        if user is None or role_of(user) != Role.ENGINEER:
+            raise PermissionDenied('Взять бронь в работу может только действующий инженер.')
+        booking = StudioBooking.objects.select_for_update().select_related('created_by').get(pk=booking.pk)
+        now = _booking_now()
+        if booking.kind != 'video':
+            raise ValidationError('Взять в работу можно только бронь с видео.')
+        if booking.status not in {'planned', 'recording'} or booking.ends_at <= now:
+            raise ValidationError('Эта запись уже завершена или недоступна для назначения инженера.')
+        if booking.engineer_id == user.pk:
+            return booking
+        if booking.engineer_id:
+            raise ValidationError('За эту бронь уже отвечает другой инженер. Обновите страницу.')
         booking.engineer = user
-        booking.save(update_fields=['engineer', 'updated_at'])
-        notify([booking.responsible], 'На видеосъёмку назначен инженер', user.get_full_name() or user.username, booking.get_absolute_url())
+        _validate_booking_engineer_availability(booking, now)
+        # The SQLite IMMEDIATE transaction serializes availability checks across
+        # bookings; the conditional update also prevents replacing an assignee.
+        won = StudioBooking.objects.filter(
+            pk=booking.pk, engineer__isnull=True, kind='video', status=booking.status,
+            starts_at=booking.starts_at, ends_at=booking.ends_at, ends_at__gt=now,
+        ).update(engineer=user, updated_at=now)
+        if not won:
+            raise ValidationError('Бронь уже изменилась. Обновите страницу и повторите действие.')
+        booking.updated_at = now
+        notify([booking.created_by], 'На видеосъёмку назначен инженер',
+               f'За запись «{booking.title}» отвечает {user.get_full_name() or user.username}.', booking.get_absolute_url())
         audit(user, booking, 'Инженер принял видеосъёмку')
         return booking
 

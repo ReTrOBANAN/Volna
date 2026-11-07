@@ -23,14 +23,16 @@
     const ids = new Set();
     return values.map(value => {
       if (!value || !Number.isSafeInteger(value.id) || value.id <= 0 || ids.has(value.id) || !statuses.has(value.status)) throw new Error('Invalid booking status snapshot');
+      const engineerId = value.engineer_id === undefined ? null : value.engineer_id;
+      if (engineerId !== null && (!Number.isSafeInteger(engineerId) || engineerId <= 0)) throw new Error('Invalid booking engineer');
       const start = readInstant(value.starts_at);
       const end = readInstant(value.ends_at);
       if (end <= start) throw new Error('Invalid booking interval');
       ids.add(value.id);
-      return {id: value.id, status: value.status, start, end};
+      return {id: value.id, status: value.status, start, end, engineerId};
     }).sort((left, right) => left.id - right.id);
   };
-  const fingerprint = values => values.map(value => `${value.id}:${value.status}:${value.start}:${value.end}`).join('|');
+  const fingerprint = values => values.map(value => `${value.id}:${value.status}:${value.start}:${value.end}:${value.engineerId}`).join('|');
 
   let endpoint;
   let bookings;

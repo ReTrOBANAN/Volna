@@ -204,7 +204,7 @@ def bookings(request):
 
 def _booking_status_rows(entries):
     return [{
-        "id": entry.pk, "status": entry.status,
+        "id": entry.pk, "status": entry.status, "engineer_id": entry.engineer_id,
         "starts_at": entry.starts_at.isoformat(), "ends_at": entry.ends_at.isoformat(),
     } for entry in entries]
 
@@ -259,6 +259,7 @@ def _booking_schedule(day, studio_id, exclude=None):
             "responsible": entry.responsible.get_full_name() or entry.responsible.username,
             "responsible_id": entry.responsible_id,
             "kind": entry.kind, "kind_label": entry.get_kind_display(),
+            "engineer_id": entry.engineer_id,
             "status": entry.status, "status_label": entry.get_status_display(),
             "start_time": start.strftime("%H:%M"), "end_time": end.strftime("%H:%M"),
             "starts_at": start.isoformat(), "ends_at": end.isoformat(),
@@ -365,7 +366,7 @@ def booking_detail(request, pk):
     if editable and booking.status == "recording":
         actions.append({"action": "status", "status": "completed", "label": "Завершить запись"})
     if role_of(request.user) == "engineer" and booking.kind == "video" and not booking.engineer_id and booking.status in ("planned", "recording"):
-        actions.append({"action": "claim", "label": "Откликнуться на видеосъёмку"})
+        actions.append({"action": "claim", "label": "Взять бронь в работу"})
     if booking.kind == "video" and booking.status == "completed" and not booking.montage_completed and (booking.engineer_id == request.user.pk or role_of(request.user) == "director"):
         actions.append({"action": "montage", "label": "Отметить «Смонтировано»"})
     return render(request, "newsroom/booking_detail.html", {
@@ -391,6 +392,8 @@ def booking_action(request, pk):
             raise ValidationError("Неизвестное действие.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
+    except StudioBooking.DoesNotExist as exc:
+        raise Http404 from exc
     return redirect("newsroom:booking_detail", pk=pk)
 
 

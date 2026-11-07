@@ -1,5 +1,5 @@
 {% if booking.kind == 'video' %}
-<span class="booking-kind-icon" role="img" aria-label="{{ booking.get_kind_display }}" title="{{ booking.get_kind_display }}">
+<span class="booking-kind-icon" role="img" aria-label="{{ booking.get_kind_display }}" title="{{ booking.get_kind_display }} · {% if booking.engineer %}Инженер: {{ booking.engineer.get_full_name|default:booking.engineer.username }}{% elif booking.status == 'completed' or booking.status == 'cancelled' %}Инженер не был назначен{% else %}Инженер не назначен{% endif %}">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
     <rect x="3" y="6" width="12" height="12" rx="2"/>
     <path d="m15 10 6-4v12l-6-4"/>

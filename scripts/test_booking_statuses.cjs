@@ -228,3 +228,26 @@ test('a server-confirmed deletion reloads a calendar once and stops obsolete tim
   assert.equal(h.reloads(), 1);
   assert.equal(h.requests.length, 1);
 });
+
+test('engineer assignment alone reloads once, while malformed engineer ids are rejected', async () => {
+  const row = {...booking(1, 'planned', 300000, 360000), engineer_id: null};
+  const assigned = {...row, engineer_id: 7};
+  const h = createHarness({bookings: [row]});
+  await h.respond(0, [{...row, engineer_id: undefined}]);
+  assert.equal(h.reloads(), 0, 'legacy snapshots without an engineer field mean unassigned');
+  h.tick(15000);
+  await h.respond(1, [assigned]);
+  assert.equal(h.reloads(), 1, 'the engineer change refreshes buttons and tooltips without a status or time change');
+  h.tick(60000);
+  assert.equal(h.requests.length, 2);
+  assert.equal(h.reloads(), 1);
+
+  for (const engineer_id of [0, -1, 1.5, '7', true, {}, Number.MAX_SAFE_INTEGER + 1]) {
+    const invalid = createHarness({bookings: [row]});
+    await invalid.respond(0, [{...row, engineer_id}]);
+    assert.equal(invalid.reloads(), 0, `invalid engineer ${JSON.stringify(engineer_id)} cannot change the snapshot`);
+    invalid.tick(15000);
+    await invalid.respond(1, [assigned]);
+    assert.equal(invalid.reloads(), 1, 'polling recovers when a valid assignment arrives');
+  }
+});
