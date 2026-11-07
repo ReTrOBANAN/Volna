@@ -178,7 +178,8 @@ def shift_delete(request, pk):
 @login_required
 def bookings(request):
     require_capability(request.user, "bookings_view")
-    day = _selected_date(request)
+    today = timezone.localdate()
+    day = _calendar_date(request.GET.get("date")) or today
     mode = "day" if request.GET.get("view") == "day" else "week"
     start = day if mode == "day" else day - timedelta(days=day.weekday())
     length = 1 if mode == "day" else 7
@@ -189,6 +190,7 @@ def bookings(request):
         studio_bookings = [b for b in entries if b.studio_id == studio.pk]
         studios.append({"studio": studio, "bookings": studio_bookings, "days": [{
             "date": start + timedelta(days=i),
+            "is_today": start + timedelta(days=i) == today,
             "bookings": [b for b in studio_bookings if b.starts_at < _aware_day(start + timedelta(days=i + 1)) and b.ends_at > _aware_day(start + timedelta(days=i))],
         } for i in range(length)]})
     return render(request, "newsroom/bookings.html", {
