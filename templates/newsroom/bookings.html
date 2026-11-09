@@ -1,5 +1,6 @@
 {% extends 'base.html' %}{% block content %}
 <div class="booking-schedule-page">
+<div class="section-heading"><h1 class="section-title">{{ page_title }}</h1></div>
 
 <div class="toolbar shift-schedule-toolbar">
   <div class="calendar-nav"><a class="icon-button" href="?date={{ previous_date|date:'Y-m-d' }}&amp;view={{ view_mode }}" aria-label="Предыдущий период">‹</a><a class="icon-button" href="?date={{ next_date|date:'Y-m-d' }}&amp;view={{ view_mode }}" aria-label="Следующий период">›</a><strong>{{ start|date:"j E" }}{% if view_mode == 'week' %} — {{ end|date:"j E Y" }}{% else %} {{ start|date:"Y" }}{% endif %}</strong></div>

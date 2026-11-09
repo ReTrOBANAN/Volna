@@ -1,5 +1,6 @@
 {% extends 'base.html' %}{% load static %}{% block content %}
 <div class="shift-schedule-page">
+<div class="section-heading"><h1 class="section-title">{{ page_title }}</h1></div>
 
 <div class="toolbar shift-schedule-toolbar">
   <div class="calendar-nav"><a class="icon-button" href="?date={{ previous_date|date:'Y-m-d' }}" aria-label="Предыдущие две недели">‹</a><a class="icon-button" href="?date={{ next_date|date:'Y-m-d' }}" aria-label="Следующие две недели">›</a><strong>{{ start|date:"j E" }} — {{ end|date:"j E Y" }}</strong></div>
