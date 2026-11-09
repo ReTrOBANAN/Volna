@@ -98,12 +98,19 @@ textarea:focus-visible {
   border-bottom-color: #dfe7eb;
   box-shadow: 0 3px 12px rgb(34 55 70 / 7%);
 }
-.topbar-actions { margin-left: auto; }
+.topbar-actions { margin-left: auto; min-width: 0; max-width: 100%; }
 .notification-link { color: var(--brand-blue-ink); }
 .notification-link:hover { color: var(--green); }
 .notification-count { background: var(--green); border-color: #fff; }
 .user-avatar { background: var(--brand-blue-light); color: var(--brand-blue-ink); font-weight: 700; }
 .topbar-user, .topbar-user strong { color: var(--ink); }
+.topbar-user { min-width: 0; }
+.topbar-user strong,
+.topbar-user span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .topbar-user span { color: var(--muted); }
 .mobile-menu { border-color: transparent; color: var(--brand-blue); }
 .mobile-menu .ui-icon { width: 22px; height: 22px; }

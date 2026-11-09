@@ -1,6 +1,64 @@
 /* Editorial components in the blue and green language of Gorodskaya Volna.
    Layout, sizing and interaction rules remain in app.css. */
 
+/* User text wraps inside its column, including names, URLs and unbroken titles. */
+.main-content,
+.dialog-body {
+  overflow-wrap: anywhere;
+}
+
+.main-content > *,
+.dialog-body > *,
+.detail-layout > *,
+.shift-editor-layout > *,
+.two-columns > *,
+.calendar-day-body,
+.shift-note-trigger {
+  min-width: 0;
+}
+
+.page-heading > div,
+.card-header > div,
+.card-header > h2,
+.studio-label,
+.file-name > div,
+.person-copy,
+.profile-summary > div,
+.detail-meta > div,
+.form-field,
+.filter-form,
+.filter-form > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.calendar-entry,
+.shift-entry,
+.shift-day-item {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.shift-calendar .calendar-day,
+.booking-calendar .calendar-day,
+.month-week .calendar-day { min-width: 0; }
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+.card-header,
+.form-actions { flex-wrap: wrap; }
+.main-content .button,
+.main-content .badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.badge-dot::before { flex-shrink: 0; }
+
 /* Calendars keep their compact rhythm and existing scrolling containers. */
 .calendar-nav strong {
   color: var(--brand-blue-ink, #006c9f);
