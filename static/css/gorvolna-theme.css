@@ -48,7 +48,7 @@
 }
 
 body { background: var(--bg); color: var(--ink); }
-.main-content { padding: 32px 34px 0; }
+.main-content { padding: 30px 32px 0; }
 a { color: var(--brand-blue-ink); }
 a:hover { color: var(--brand-green-ink); }
 h1 { color: var(--brand-blue); font-weight: 700; letter-spacing: -.65px; }
@@ -253,15 +253,15 @@ tbody tr:hover { background: #f8fcfe; }
 .login-copyright { color: #526f80; }
 
 @media (min-width: 1500px) {
-  .main-content { padding-top: 36px; }
+  .main-content { padding-top: 34px; }
 }
 
 @media (max-width: 1200px) {
-  .main-content { padding: 25px 22px 0; }
+  .main-content { padding: 23px 20px 0; }
 }
 
 @media (max-width: 760px) {
-  .main-content { padding: 22px 18px 0; }
+  .main-content { padding: 20px 16px 0; }
   .brand .brand-logo { max-width: 184px; }
   .login-brand .brand-logo { max-width: 220px; }
   .login-story { border-right: 0; border-bottom: 1px solid var(--line); }
