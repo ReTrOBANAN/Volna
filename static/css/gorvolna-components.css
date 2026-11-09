@@ -239,8 +239,8 @@
 /* Small, anchored disclosures keep the same interaction and hit areas. */
 .shift-actions-toggle { color: #668394; }
 .shift-actions-toggle:hover,
-.shift-actions[open] .shift-actions-toggle { background: #e7f3fa; color: #006c9f; }
-.shift-actions-toggle:focus-visible { outline-color: var(--brand-blue, #0083ca); }
+.shift-actions[open] .shift-actions-toggle { background: #e2f3e9; color: #008738; }
+.shift-actions-toggle:focus-visible { outline-color: var(--brand-green, #00a041); }
 .shift-actions-menu,
 .shift-note-popup {
   background: #fff;
@@ -260,7 +260,7 @@
 .shift-note-popup .shift-note { color: #3d5a69; }
 .shift-entry[data-shift-note] .shift-note-trigger > span::after,
 .shift-day-item[data-shift-note] .shift-day-time::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%230083ca' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 10.5a1 1 0 0 1-1 1h-7l-3 2v-10a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1zM5 5.5h6M5 8h4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%2300a041' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 10.5a1 1 0 0 1-1 1h-7l-3 2v-10a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1zM5 5.5h6M5 8h4'/%3E%3C/svg%3E");
 }
 
 /* State colours extend to details and task badges without enlarging them. */
