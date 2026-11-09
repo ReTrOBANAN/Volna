@@ -1,14 +1,16 @@
 (() => {
-  const actions = Array.from(document.querySelectorAll('[data-shift-actions]')).map(details => {
+  const registered = new WeakSet();
+  const findActions = () => Array.from(document.querySelectorAll('[data-shift-actions]')).map(details => {
+    if (registered.has(details)) return null;
     const trigger = details.querySelector('summary');
     const menu = details.querySelector('[data-shift-actions-menu]');
     if (!trigger || !menu) return null;
+    registered.add(details);
     const enhanced = typeof menu.showPopover === 'function' && typeof menu.hidePopover === 'function';
     if (enhanced) menu.setAttribute('popover', 'manual');
     trigger.setAttribute('aria-expanded', 'false');
     return {details, trigger, menu, enhanced};
   }).filter(Boolean);
-  if (!actions.length) return;
 
   let active = null;
 
@@ -50,7 +52,7 @@
     }
   };
 
-  actions.forEach(entry => {
+  const initialize = () => findActions().forEach(entry => {
     entry.trigger.addEventListener('click', event => {
       event.preventDefault();
       if (entry.details.open) close(entry);
@@ -62,6 +64,12 @@
       open(entry);
       entry.menu.querySelector('a, button')?.focus();
     });
+  });
+  initialize();
+
+  document.addEventListener('shift-calendar-updated', () => {
+    if (active) close(active);
+    initialize();
   });
 
   document.addEventListener('click', event => {

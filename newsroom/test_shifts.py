@@ -244,6 +244,25 @@ class ShiftDateRangeTests(TestCase):
         parser.feed(response.content.decode())
         self.assertFalse(any(self.create_url in link for link in parser.links))
 
+    def test_calendar_date_navigation_renders_the_selected_past_period_without_a_submit_button(self):
+        selected = date(2024, 2, 29)
+        entry = self.shift(starts_at=self.local_datetime(selected, 10), ends_at=self.local_datetime(selected, 13))
+        for user in [self.chief, self.reporter]:
+            with self.subTest(role=user.employee.role):
+                self.client.force_login(user)
+                response = self.client.get(self.calendar_url, {'date': selected.isoformat()})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context['selected_date'], selected)
+                self.assertEqual(response.context['start'], date(2024, 2, 26))
+                self.assertEqual(response.context['end'], date(2024, 3, 10))
+                day = next(item for item in response.context['days'] if item['date'] == selected)
+                self.assertEqual([shift.pk for shift in day['shifts']], [entry.pk])
+                form = response.content.decode().split('class="shift-calendar-jump"', 1)[1].split('</form>', 1)[0]
+                self.assertIn('id="shift-calendar-date"', form)
+                self.assertIn('value="2024-02-29"', form)
+                self.assertNotIn('<button', form)
+                self.assertContains(response, 'js/shift_calendar.js')
+
     def test_create_preview_lists_only_selected_local_day_in_chronological_order(self):
         late = self.shift(starts_at=self.local_datetime(self.day, 17), ends_at=self.local_datetime(self.day, 18))
         early = self.shift(starts_at=self.local_datetime(self.day, 0, 30), ends_at=self.local_datetime(self.day, 2))

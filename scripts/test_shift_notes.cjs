@@ -144,6 +144,18 @@ const assertClosed = entry => {
   assert.equal(entry.trigger.attributes['aria-describedby'], undefined);
 };
 
+test('changing the calendar closes the previous note and keeps newly loaded notes usable', () => {
+  const h = createHarness();
+  const old = h.addNote();
+  h.click(old.label);
+  h.document.dispatch('shift-calendar-updated');
+  assertClosed(old);
+  assert.equal(old.popup.popoverOpen, false);
+  const added = h.addNote();
+  h.click(added.label);
+  assertOpen(added);
+});
+
 test('clicking dynamically added cards toggles one note window at a time', () => {
   const h = createHarness();
   const first = h.addNote();

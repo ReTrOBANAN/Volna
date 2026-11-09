@@ -46,7 +46,7 @@ class Element extends Events {
 function createHarness({count = 2, support = true, throwOnShow = false, width = 1024, height = 768, anchor, popup} = {}) {
   const document = new Events();
   const window = Object.assign(new Events(), {innerWidth: width, innerHeight: height});
-  const entries = Array.from({length: count}, () => {
+  const createEntry = () => {
     const details = new Element(document);
     const trigger = new Element(document, details);
     const menu = new Element(document, details);
@@ -66,11 +66,13 @@ function createHarness({count = 2, support = true, throwOnShow = false, width = 
     menu.querySelector = selector => selector === 'a, button' ? action : null;
     details.querySelector = selector => selector === 'summary' ? trigger : selector === '[data-shift-actions-menu]' ? menu : null;
     return {details, trigger, menu, action};
-  });
+  };
+  const entries = Array.from({length: count}, createEntry);
   document.querySelectorAll = selector => selector === '[data-shift-actions]' ? entries.map(entry => entry.details) : [];
   vm.runInNewContext(source, {document, window}, {filename: 'static/js/shift_actions.js'});
   return {
     entries, document, window,
+    addEntry() { const entry = createEntry(); entries.push(entry); return entry; },
     click(element) {
       const event = element.dispatch('click');
       document.dispatch('click', event);
@@ -176,4 +178,28 @@ test('unsupported or failing popover APIs leave a usable native disclosure fallb
     assert.equal(entry.details.open, false);
     assert.equal(h.document.activeElement, entry.trigger);
   }
+});
+
+test('refreshed calendars close old menus and initialize newly loaded actions only once', () => {
+  const h = createHarness();
+  const old = h.entries[0];
+  h.click(old.trigger);
+  h.entries.splice(0);
+  const added = h.addEntry();
+  h.document.dispatch('shift-calendar-updated');
+  assert.equal(old.details.open, false);
+  assert.equal(old.menu.popoverOpen, false);
+  h.document.dispatch('shift-calendar-updated');
+  h.click(added.trigger);
+  assert.equal(added.details.open, true);
+  assert.equal(added.menu.showCount, 1, 'repeated updates do not duplicate handlers');
+});
+
+test('an initially empty calendar can load shifts with working action menus', () => {
+  const h = createHarness({count: 0});
+  const added = h.addEntry();
+  h.document.dispatch('shift-calendar-updated');
+  h.click(added.trigger);
+  assert.equal(added.details.open, true);
+  assert.equal(added.menu.popoverOpen, true);
 });

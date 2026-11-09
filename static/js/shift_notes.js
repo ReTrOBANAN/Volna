@@ -120,6 +120,7 @@
     // Clicking note text can blur the card without focusing another element.
     if (active && event.relatedTarget && contains(active, event.target) && !contains(active, event.relatedTarget)) close(active);
   });
+  document.addEventListener('shift-calendar-updated', () => { if (active) close(active); });
   window.addEventListener('blur', () => { if (active) close(active); });
   window.addEventListener('resize', () => { if (active) close(active); });
   window.addEventListener('scroll', event => {
