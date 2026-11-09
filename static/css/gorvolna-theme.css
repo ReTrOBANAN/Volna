@@ -97,9 +97,7 @@ textarea:focus-visible {
   border-bottom-color: #dfe7eb;
   box-shadow: 0 3px 12px rgb(34 55 70 / 7%);
 }
-.topbar-title { color: var(--muted); }
-.topbar-divider { color: #bccdd6; }
-.topbar-current { color: var(--brand-blue-ink); font-weight: 700; }
+.topbar-actions { margin-left: auto; }
 .notification-link { color: var(--brand-blue-ink); }
 .notification-link:hover { color: var(--green); }
 .notification-count { background: var(--green); border-color: #fff; }
