@@ -9,7 +9,7 @@ app_name = "newsroom"
 urlpatterns = [
     path("login/", LoginView.as_view(template_name="registration/login.html", authentication_form=RussianAuthenticationForm, redirect_authenticated_user=True), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
-    path("", views.dashboard, name="dashboard"),
+    path("", views.home, name="home"),
     path("radio/shifts/", views.shifts, name="shifts"),
     path("radio/shifts/day/", views.shift_day_schedule, name="shift_day_schedule"),
     path("radio/shifts/new/", views.shift_create, name="shift_create"),

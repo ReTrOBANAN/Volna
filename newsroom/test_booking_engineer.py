@@ -78,10 +78,15 @@ class BookingEngineerClaimTests(TestCase):
                 self.assertEqual(Notification.objects.filter(url=saved.get_absolute_url(),
                                                              recipient=self.creator).count(), 1)
         self.client.force_login(self.engineer)
-        response = self.client.get(reverse('newsroom:dashboard'))
-        self.assertEqual({entry.pk for entry in response.context['assigned_bookings']}, {future.pk, current.pk})
-        self.assertContains(response, 'Вы отвечаете за запись')
-        self.assertNotContains(response, 'Ожидается монтаж видеозаписи')
+        response = self.client.get(reverse('newsroom:home'), follow=True)
+        self.assertRedirects(response, reverse('newsroom:bookings'))
+        self.assertEqual({entry.pk for entry in response.context['bookings']}, {future.pk, current.pk})
+        self.assertContains(response, 'Инженер: Инженер', count=2)
+        for entry in [future, current]:
+            detail = self.client.get(entry.get_absolute_url())
+            self.assertEqual(detail.context['booking'].engineer, self.engineer)
+            self.assertContains(detail, '<span class="badge badge-green">Вы</span>', html=True)
+            self.assertNotContains(detail, 'Взять бронь в работу')
 
     def test_own_replay_has_no_side_effects_and_another_engineer_cannot_take_stale_booking(self):
         entry = self.booking()

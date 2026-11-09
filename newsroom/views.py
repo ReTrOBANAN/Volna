@@ -16,7 +16,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from . import services
 from .forms import BookingForm, EmployeeForm, EventForm, ProfileForm, ProposalForm, ShiftForm, UploadForm
-from .models import BroadcastShift, Event, EventAssignment, Notification, Proposal, Studio, StudioBooking, UploadedFile
+from .models import BroadcastShift, Event, EventAssignment, Notification, Proposal, Role, Studio, StudioBooking, UploadedFile
 from .permissions import (
     can, can_edit_booking, can_edit_event, can_manage_employee,
     can_view_event_materials, can_view_file, require_capability, role_of,
@@ -58,27 +58,12 @@ def _add_error(form, exc):
 
 
 @login_required
-def dashboard(request):
-    now = timezone.now()
-    events = visible_events(request.user) if can(request.user, "events_view") else Event.objects.none()
-    bookings = StudioBooking.objects.select_related("studio", "responsible") if can(request.user, "bookings_view") else StudioBooking.objects.none()
-    assigned = events.filter(Q(reporter=request.user) | Q(camera=request.user) | Q(photographer=request.user) | Q(editor=request.user)).exclude(status="published")
-    assigned_bookings = bookings.filter(
-        Q(responsible=request.user, status__in=["planned", "recording"])
-        | Q(engineer=request.user, montage_completed=False, status__in=["planned", "recording", "completed"])
-    )
-    notifications = Notification.objects.filter(recipient=request.user, available_at__lte=now).order_by("-created_at")[:5]
-    return render(request, "newsroom/dashboard.html", {
-        "page_title": "Рабочий стол", "today": timezone.localdate(),
-        "upcoming_events": events.filter(ends_at__gte=now).order_by("starts_at")[:5],
-        "upcoming_bookings": bookings.filter(ends_at__gte=now).exclude(status="cancelled").order_by("starts_at")[:5],
-        "assigned_events": assigned.order_by("starts_at")[:6],
-        "assigned_bookings": assigned_bookings.order_by("starts_at")[:6], "recent_notifications": notifications,
-        "event_count": events.filter(ends_at__gte=now).count(),
-        "booking_count": bookings.filter(ends_at__gte=now).exclude(status="cancelled").count(),
-        "task_count": assigned.count() + assigned_bookings.count(),
-        "file_count": visible_files(request.user).count() if can(request.user, "files_view") else 0,
-    })
+def home(request):
+    if role_of(request.user) in {Role.RADIO_CHIEF, Role.RADIO_REPORTER, Role.ENGINEER}:
+        require_capability(request.user, "bookings_view")
+        return redirect("newsroom:bookings")
+    require_capability(request.user, "events_view")
+    return redirect("newsroom:events")
 
 
 @login_required

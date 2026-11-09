@@ -1,0 +1,263 @@
+/* Editorial components in the blue and green language of Gorodskaya Volna.
+   Layout, sizing and interaction rules remain in app.css. */
+
+/* Calendars keep their compact rhythm and existing scrolling containers. */
+.calendar-nav strong {
+  color: var(--brand-blue-ink, #006c9f);
+  font-weight: 700;
+}
+
+.calendar-legend { color: #627783; }
+.calendar-day { background: #fff; border-color: var(--line, #dce7ec); }
+.calendar-day-header { color: #6a7d88; border-bottom: 0; }
+.calendar-day-header strong { color: var(--brand-blue-ink, #006c9f); font-weight: 700; }
+.calendar-day.today { background: #f6fbf8; }
+.calendar-day.today .calendar-day-header strong {
+  background: var(--green, #008738);
+  color: #fff;
+}
+.month-week .outside-month { background: #f8fafb; }
+.month-week .outside-month .calendar-day-header strong { color: #9cabb5; }
+.calendar-empty { color: #71838e; }
+
+.shift-add-link {
+  border-color: #98bfd4;
+  background: #fff;
+  color: var(--brand-blue-ink, #006c9f);
+  border-radius: 4px;
+  font-weight: 600;
+}
+.shift-add-link:hover {
+  border-color: var(--brand-blue, #0083ca);
+  background: #eef7fc;
+  color: #005780;
+}
+.shift-calendar-jump label { color: #607986; }
+.shift-calendar-jump input[type="date"] {
+  color: #344f5e;
+  border-color: #c7dae4;
+  border-radius: 4px;
+}
+.shift-calendar-jump input[type="date"]:focus-visible {
+  outline-color: var(--brand-blue, #0083ca);
+}
+
+/* Radio shifts retain a quiet surface and a distinct green station accent. */
+.shift-entry {
+  background: #f3f8f5;
+  border-left-color: var(--brand-green, #00a041);
+  border-radius: 4px;
+  color: #466353;
+}
+.shift-entry:hover { background: #eaf4ee; }
+.shift-entry strong { color: #244b36; font-weight: 600; }
+.shift-entry .shift-employee { color: #244b36; }
+.shift-note-trigger:focus-visible {
+  outline-color: var(--brand-blue, #0083ca);
+}
+
+/* Television production continues to use its distinct workflow colours. */
+.calendar-entry {
+  background: #eef7fd;
+  border-color: #cfe4f0;
+  border-left-color: var(--brand-blue, #0083ca);
+  color: #165e83;
+  border-radius: 4px;
+}
+.calendar-entry:hover { background: #e0f0fa; color: #075279; }
+.calendar-entry strong { color: #075279; font-weight: 600; }
+.calendar-entry span { opacity: 1; }
+.calendar-entry.approved,
+.calendar-entry.published {
+  background: #edf8f1;
+  border-color: #cfe9d8;
+  border-left-color: var(--brand-green, #00a041);
+  color: #246b42;
+}
+.calendar-entry.approved strong,
+.calendar-entry.published strong { color: #185733; }
+.calendar-entry.in_progress,
+.calendar-entry.filming_done,
+.calendar-entry.materials_sent,
+.calendar-entry.shot,
+.calendar-entry.transferred {
+  background: #fff7e9;
+  border-color: #f0dfba;
+  border-left-color: #c98c25;
+  color: #8b6223;
+}
+.calendar-entry.in_progress strong,
+.calendar-entry.filming_done strong,
+.calendar-entry.materials_sent strong,
+.calendar-entry.shot strong,
+.calendar-entry.transferred strong { color: #77501b; }
+.calendar-entry.edited {
+  background: #f4f1fb;
+  border-color: #dfd7ef;
+  border-left-color: #8d70bd;
+  color: #6e5395;
+}
+.calendar-entry.edited strong { color: #614783; }
+
+/* Studio semantics are intentional: planned blue, recording red, finished grey. */
+.booking-calendar .calendar-entry.planned {
+  background: #eef7fd;
+  border-color: #cfe4f0;
+  border-left-color: var(--brand-blue, #0083ca);
+  color: #165e83;
+}
+.booking-calendar .calendar-entry.planned strong { color: #075279; }
+.booking-calendar .calendar-entry.planned:hover { background: #e0f0fa; color: #075279; }
+.booking-calendar .calendar-entry.recording {
+  background: #fff0f1;
+  border-color: #efcfd3;
+  border-left-color: #cc5965;
+  color: #9b3e49;
+}
+.booking-calendar .calendar-entry.recording strong { color: #84313d; }
+.booking-calendar .calendar-entry.recording:hover { background: #fde4e8; color: #84313d; }
+.booking-calendar .calendar-entry.completed {
+  background: #f2f4f6;
+  border-color: #dce2e7;
+  border-left-color: #9da7b0;
+  color: #606b75;
+}
+.booking-calendar .calendar-entry.completed strong { color: #49545e; }
+.booking-calendar .calendar-entry.completed:hover { background: #e8edf1; color: #49545e; }
+.booking-calendar-legend .legend-dot.planned { background: var(--brand-blue, #0083ca); }
+.booking-calendar-legend .legend-dot.recording { background: #cc5965; }
+.booking-calendar-legend .legend-dot.completed { background: #9da7b0; }
+.booking-kind-icon { color: inherit; }
+
+/* The daily preview remains neutral; a blue outline identifies unsaved work. */
+.shift-day-panel { background: #fff; }
+.shift-day-panel .card-header p { color: #647b88; }
+.shift-day-status { color: #617884; }
+.shift-day-status.is-error { color: #a13747; }
+.shift-day-item {
+  background: #f8fafb;
+  border-color: #dce7ec;
+  border-left-color: #b9ced9;
+  border-radius: 5px;
+}
+.shift-day-item strong { color: #344f5e; font-weight: 600; }
+.shift-day-time { color: #4f6c7c; }
+.booking-day-meta,
+.shift-note { color: #5b7280; }
+.shift-day-item.is-draft {
+  background: #fff;
+  border-color: #82b8d3;
+  border-left-color: var(--brand-blue, #0083ca);
+}
+.shift-day-item.is-draft .shift-day-time,
+.shift-day-item.is-draft strong { color: #235e7e; }
+.shift-day-item.is-incomplete {
+  background: #f8fafb;
+  border-color: #c5d9e3;
+  border-left-color: #82b8d3;
+}
+.shift-draft-badge { color: var(--brand-blue-ink, #006c9f); font-weight: 600; }
+.shift-day-empty {
+  background: #fff;
+  border-color: #c9dce6;
+  color: #687e8b;
+  border-radius: 5px;
+}
+.shift-schedule-note { color: #687b87; }
+.booking-day-item.is-draft.has-conflict {
+  background: #fff2f3;
+  border-color: #e9bec5;
+  border-left-color: #cc5965;
+}
+.booking-day-item.is-draft.has-conflict strong,
+.booking-day-item.is-draft.has-conflict .shift-day-time { color: #923b47; }
+.shift-time-range legend { color: #235e7e; }
+.shift-time-divider { color: #6b8491; }
+.shift-form-card select#id_employee,
+.booking-form-card .form-field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'%3E%3Cpath d='m2 2 5 5 5-5' stroke='%230083ca' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Small, anchored disclosures keep the same interaction and hit areas. */
+.shift-actions-toggle { color: #668394; }
+.shift-actions-toggle:hover,
+.shift-actions[open] .shift-actions-toggle { background: #e7f3fa; color: #006c9f; }
+.shift-actions-toggle:focus-visible { outline-color: var(--brand-blue, #0083ca); }
+.shift-actions-menu,
+.shift-note-popup {
+  background: #fff;
+  border-color: #cedfe9;
+  color: #344f5e;
+  border-radius: 6px;
+  box-shadow: 0 7px 24px rgba(0, 64, 98, .12);
+}
+.shift-actions-menu a,
+.shift-actions-menu button { color: #345464; }
+.shift-actions-menu a:hover,
+.shift-actions-menu button:hover { background: #edf7fc; color: #006c9f; }
+.shift-actions-menu .shift-actions-delete { color: #ad3b49; }
+.shift-actions-menu .shift-actions-delete:hover { background: #fff0f2; color: #8b2935; }
+.shift-actions-menu a:focus-visible,
+.shift-actions-menu button:focus-visible { outline-color: var(--brand-blue, #0083ca); }
+.shift-note-popup .shift-note { color: #3d5a69; }
+.shift-entry[data-shift-note] .shift-note-trigger > span::after,
+.shift-day-item[data-shift-note] .shift-day-time::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%230083ca' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 10.5a1 1 0 0 1-1 1h-7l-3 2v-10a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1zM5 5.5h6M5 8h4'/%3E%3C/svg%3E");
+}
+
+/* State colours extend to details and task badges without enlarging them. */
+.badge { border-radius: 3px; background: #edf6fc; color: #196b96; font-weight: 600; }
+.badge-blue,
+.badge-planned,
+.badge-scheduled { background: #e7f4fc; color: #0b6898; }
+.badge-green,
+.badge-approved,
+.badge-published { background: #eaf8ef; color: #246b42; }
+.badge-grey,
+.badge-completed,
+.badge-cancelled,
+.badge-past { background: #edf1f4; color: #5a6c78; }
+.badge-recording,
+.badge-red,
+.badge-rejected { background: #ffedf0; color: #a13747; }
+.badge-orange,
+.badge-in_progress,
+.badge-filming_done,
+.badge-materials_sent,
+.badge-shot,
+.badge-transferred,
+.badge-pending { background: #fff5e5; color: #8a601c; }
+.badge-purple,
+.badge-edited { background: #f1ecfa; color: #72549e; }
+
+.detail-description { color: #536b79; }
+.detail-meta { border-color: #dce7ec; }
+.detail-meta dt { color: #677e8c; }
+.detail-meta dd { color: #344f5e; }
+.action-description { color: #667e8c; }
+.booking-information-card .booking-actions { border-top-color: #dce7ec; }
+.booking-dialog {
+  background: #f6f9fb;
+  border-color: #c7dce7;
+  border-radius: 8px;
+  box-shadow: 0 20px 80px rgba(0, 57, 88, .22);
+}
+.booking-dialog::backdrop { background: rgba(15, 47, 66, .42); }
+.dialog-toolbar { background: #fff; color: #12638b; border-color: #dce7ec; font-weight: 600; }
+.dialog-body h1 { color: var(--brand-blue, #0083ca); }
+.dialog-loading { color: #617b8a; }
+.timeline-item { border-left-color: #c9dde8; }
+.timeline-item::before {
+  background: var(--brand-green, #00a041);
+  box-shadow: 0 0 0 1px #c9dde8;
+}
+.timeline-item strong { color: #3c5969; }
+.timeline-item span { color: #6c818d; }
+.assignment-actions { border-color: #dce7ec; }
+.assignment-actions h3 { color: #1d6c96; }
+
+@media (forced-colors: active) {
+  .shift-form-card select#id_employee,
+  .booking-form-card .form-field select { background-image: none; }
+  .calendar-day.today .calendar-day-header strong { outline: 1px solid CanvasText; }
+}

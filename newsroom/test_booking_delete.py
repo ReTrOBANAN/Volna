@@ -185,7 +185,6 @@ class BookingDeletionTests(TestCase):
         for name, query in [
             ('bookings', {'date': day}),
             ('booking_create', {'date': day, 'studio': self.studio.pk}),
-            ('dashboard', {}),
         ]:
             with self.subTest(page=name):
                 response = self.client.get(reverse(f'newsroom:{name}'), query)

@@ -77,14 +77,14 @@ class NewsroomTestCase(TestCase):
 class AuthenticationTests(NewsroomTestCase):
     def test_correct_password_logs_in(self):
         self.assertTrue(self.client.login(username='radio_reporter', password=TEST_PASSWORD))
-        self.assertEqual(self.client.get(reverse('newsroom:dashboard')).status_code, 200)
+        self.assertRedirects(self.client.get(reverse('newsroom:home')), reverse('newsroom:bookings'))
 
     def test_wrong_password_does_not_log_in(self):
         self.assertFalse(self.client.login(username='radio_reporter', password='incorrect'))
         self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_anonymous_cannot_open_internal_pages(self):
-        for name in ['dashboard', 'shifts', 'bookings', 'events', 'files', 'employees', 'proposals', 'notifications', 'profile']:
+        for name in ['home', 'shifts', 'bookings', 'events', 'files', 'employees', 'proposals', 'notifications', 'profile']:
             with self.subTest(page=name):
                 response = self.client.get(reverse(f'newsroom:{name}'))
                 self.assertEqual(response.status_code, 302)
@@ -481,12 +481,12 @@ class NotificationAndSmokeTests(NewsroomTestCase):
         notification.refresh_from_db()
         self.assertFalse(notification.is_read)
 
-    def test_all_role_dashboards_and_allowed_pages_render(self):
+    def test_all_role_allowed_pages_render(self):
         capabilities = [('shifts_view', 'shifts'), ('bookings_view', 'bookings'), ('events_view', 'events'),
                         ('files_view', 'files'), ('employees_manage', 'employees'), ('proposals_view', 'proposals'), ('news_view', 'news')]
         for role, user in self.users.items():
             self.client.force_login(user)
-            for page in ['dashboard', 'profile', 'notifications'] + [page for cap, page in capabilities if can(user, cap)]:
+            for page in ['profile', 'notifications'] + [page for cap, page in capabilities if can(user, cap)]:
                 with self.subTest(role=role, page=page):
                     self.assertEqual(self.client.get(reverse(f'newsroom:{page}')).status_code, 200)
 

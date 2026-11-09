@@ -1,0 +1,259 @@
+/* The station's blue, green and white identity, on the existing newsroom layout. */
+@font-face {
+  font-family: "Clear Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../brand/clear-sans-regular.woff") format("woff");
+}
+@font-face {
+  font-family: "Clear Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("../brand/clear-sans-medium.woff") format("woff");
+}
+@font-face {
+  font-family: "Clear Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("../brand/clear-sans-bold.woff") format("woff");
+}
+
+:root {
+  --brand-blue: #0083ca;
+  --brand-blue-dark: #006c9f;
+  --brand-blue-ink: #006c9f;
+  --brand-blue-action: #007cb7;
+  --brand-blue-light: #edf7fc;
+  --brand-green: #00a041;
+  --brand-green-ink: #14713b;
+  --brand-green-light: #edf9f1;
+  --bg: #f5f7f8;
+  --surface: #fff;
+  --ink: #34454f;
+  --muted: #647580;
+  --line: #dce7ec;
+  --green: #008738;
+  --green-dark: #006d2d;
+  --green-light: var(--brand-green-light);
+  --blue: var(--brand-blue);
+  --orange: #96620b;
+  --red: #b54141;
+  --radius: 6px;
+  --shadow: 0 2px 12px rgb(35 65 84 / 4%);
+  --brand-skyline: url("../brand/gorvolna-skyline.webp");
+  font-family: "Clear Sans", Arial, "Segoe UI", sans-serif;
+}
+
+body { background: var(--bg); color: var(--ink); }
+a { color: var(--brand-blue-ink); }
+a:hover { color: var(--brand-green-ink); }
+h1 { color: var(--brand-blue); font-weight: 700; letter-spacing: -.65px; }
+h2, h3 { color: var(--brand-blue-ink); font-weight: 700; }
+.muted, .small.muted { color: var(--muted); }
+.eyebrow { color: var(--brand-green-ink); font-weight: 700; letter-spacing: 1.2px; }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+
+/* The navigation stays in its familiar left column. */
+.sidebar { background: #fff; border-right-color: var(--line); }
+.brand { color: var(--brand-blue); letter-spacing: -.8px; }
+.brand:hover { color: var(--brand-blue-ink); }
+.brand-caption { color: var(--brand-green-ink); letter-spacing: 1.5px; }
+.brand-mark { color: var(--brand-green); }
+.brand-gorvolna { margin-left: 4px; margin-right: 4px; }
+.brand .brand-logo { display: block; width: 100%; max-width: 190px; height: auto; }
+.nav-caption { color: var(--muted); letter-spacing: 1.1px; }
+.nav-group { color: var(--brand-green-ink); font-weight: 700; }
+.nav-item { color: #526773; border-radius: 4px; font-weight: 600; }
+.nav-item:hover { background: #f2f8fb; color: var(--brand-blue-ink); }
+.nav-item.active {
+  background: var(--brand-blue-light);
+  color: var(--brand-blue-ink);
+  box-shadow: inset 3px 0 0 var(--brand-blue);
+  font-weight: 700;
+}
+.nav-icon { display: inline-flex; align-items: center; justify-content: center; color: var(--brand-blue); }
+.nav-icon .ui-icon { display: block; width: 19px; height: 19px; }
+.active .nav-icon { color: var(--brand-blue-ink); }
+.nav-subgroup { border-left-color: #d8e8f1; }
+.workspace-note { color: var(--brand-green-ink); border-bottom-color: var(--line); }
+.workspace-note > span:last-child { color: var(--muted); }
+.live-dot { background: var(--brand-green); }
+.logout-button:hover { color: #a63333; background: #fff4f4; }
+
+/* A clean white header, with the reference site's blue emphasis. */
+.topbar {
+  background: #fff;
+  border-bottom-color: #dfe7eb;
+  box-shadow: 0 3px 12px rgb(34 55 70 / 7%);
+}
+.topbar-title { color: var(--muted); }
+.topbar-divider { color: #bccdd6; }
+.topbar-current { color: var(--brand-blue-ink); font-weight: 700; }
+.notification-link { color: var(--brand-blue-ink); }
+.notification-link:hover { color: var(--green); }
+.notification-count { background: var(--green); border-color: #fff; }
+.user-avatar { background: var(--brand-blue-light); color: var(--brand-blue-ink); font-weight: 700; }
+.topbar-user, .topbar-user strong { color: var(--ink); }
+.topbar-user span { color: var(--muted); }
+.mobile-menu { border-color: transparent; color: var(--brand-blue); }
+.mobile-menu .ui-icon { width: 22px; height: 22px; }
+.page-heading p { color: var(--muted); }
+
+/* Green is the action colour; blue identifies navigation. */
+.button { border-radius: 4px; font-weight: 700; box-shadow: none; }
+.button-primary { background: var(--green); border-color: var(--green); color: #fff; }
+.button-primary:hover { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+.button-secondary { background: #fff; border-color: #b8d7e7; color: var(--brand-blue-ink); }
+.button-secondary:hover { background: var(--brand-blue-light); border-color: var(--brand-blue); color: var(--brand-blue-ink); }
+.button-danger { background: #fff2f2; border-color: #e8b8b8; color: #a63333; }
+.button-danger:hover { background: #fbe2e2; border-color: #d89898; color: #8e2525; }
+.button-link { color: var(--brand-blue-ink); }
+.button-link:hover { color: var(--brand-green-ink); }
+.icon-button { color: var(--brand-blue-ink); border-color: #c8dce7; border-radius: 4px; background: #fff; }
+.icon-button:hover { color: var(--brand-blue-dark); background: var(--brand-blue-light); border-color: var(--brand-blue); }
+
+/* Content cards retain their geometry and gain a lighter editorial finish. */
+.card { border-color: var(--line); background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+.card-header { border-bottom-color: var(--line); background: #fff; }
+.card-header h2 { color: var(--brand-blue-ink); }
+.card-header p, .card-header .muted { color: var(--muted); }
+.card-link { color: var(--brand-blue-ink); font-weight: 700; }
+.card-link:hover { color: var(--brand-green-ink); }
+.date-chip { border-color: #d4e4ed; background: #f8fcfe; color: #526f80; border-radius: 4px; }
+.stat-card { border-top: 3px solid var(--brand-blue); }
+.stat-card:nth-child(even) { border-top-color: var(--brand-green); }
+.stat-top { color: #536b79; }
+.stat-value { color: var(--brand-blue-ink); font-weight: 700; }
+.stat-description { color: var(--muted); }
+.stat-icon, .stat-card:nth-child(3) .stat-icon { background: var(--brand-blue-light); color: var(--brand-blue-ink); border-radius: 5px; }
+.stat-card:nth-child(2) .stat-icon, .stat-card:nth-child(4) .stat-icon { background: var(--brand-green-light); color: var(--brand-green-ink); }
+.stat-icon .ui-icon { width: 18px; height: 18px; }
+.quick-link { background: #fff; border-color: var(--line); border-radius: 5px; color: var(--brand-blue-ink); }
+.quick-link:hover { border-color: var(--brand-blue); background: #f6fbfe; }
+.quick-link .quick-icon { color: var(--brand-blue); }
+.quick-link > span:last-child { color: var(--brand-green-ink); }
+.welcome-note { border-color: #d3e7f1; border-left: 4px solid var(--brand-blue); background: #fff; }
+.welcome-note h2 { color: var(--brand-blue-ink); }
+.welcome-note p { color: var(--muted); }
+.welcome-symbol { color: var(--brand-green); }
+
+/* Tables, files and personal work lists. */
+th { background: #f1f8fc; color: #526f80; border-bottom-color: #d5e5ee; font-weight: 700; }
+td { color: var(--ink); border-bottom-color: #e6edf1; }
+tbody tr:hover { background: #f8fcfe; }
+.table-title { color: var(--brand-blue-ink); font-weight: 700; }
+.table-subtitle { color: var(--muted); }
+.task-item, .notification-item { border-bottom-color: #e2ebf0; }
+.task-copy, .notification-copy { min-width: 0; overflow-wrap: anywhere; }
+.task-copy a, .task-copy strong,
+.notification-copy a, .notification-copy strong,
+.table-title, .table-subtitle { overflow-wrap: anywhere; }
+.task-icon { background: var(--brand-blue-light); color: var(--brand-blue-ink); border-radius: 4px; }
+.task-copy strong, .notification-copy strong { color: var(--brand-blue-ink); font-weight: 700; }
+.task-copy p, .notification-copy p { color: var(--muted); }
+.notification-copy time { color: #6c7d87; }
+.notification-marker { background: #b7cbd6; }
+.notification-item.unread .notification-marker { background: var(--brand-green); box-shadow: 0 0 0 4px #edf9f1; }
+.file-icon { border-color: #bcd9e8; background: #eff8fd; color: var(--brand-blue-ink); border-radius: 3px; }
+.upload-panel h3 { color: var(--brand-blue-ink); }
+.upload-panel p { color: var(--muted); }
+.person-row + .person-row { border-top-color: #e5edf1; }
+.person-row .user-avatar { background: var(--brand-blue-light); color: var(--brand-blue-ink); }
+.person-copy strong, .profile-summary h2 { color: var(--brand-blue-ink); }
+.person-copy span, .profile-summary p { color: var(--muted); }
+.profile-summary .user-avatar { background: var(--brand-blue-light); color: var(--brand-blue-ink); }
+.proposal-type { color: var(--brand-green-ink); }
+.pagination { color: var(--muted); }
+
+/* Existing forms and validation states; no field order or sizing changes. */
+.form-field label { color: #385867; font-weight: 700; }
+.required { color: var(--brand-green-ink); }
+.form-field input:not([type=checkbox]):not([type=radio]),
+.form-field select,
+.form-field textarea,
+.filter-form input,
+.filter-form select {
+  color: var(--ink);
+  background-color: #fff;
+  border-color: #bccfd9;
+  border-radius: 4px;
+}
+.form-field input::placeholder, .form-field textarea::placeholder { color: #6d7e89; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus,
+.filter-form input:focus, .filter-form select:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgb(0 135 200 / 12%);
+}
+.form-field input[type=file] { background: #f8fcfe; border-color: #aecfdf; }
+.form-field input[type=file]::file-selector-button { background: var(--brand-blue-light); color: var(--brand-blue-ink); border-color: #c1ddeb; border-radius: 3px; }
+.field-help { color: var(--muted); }
+.field-error { color: #a63333; }
+.checkbox-field input { accent-color: var(--green); }
+.form-actions { border-top-color: var(--line); }
+.message { background: #eef9f2; border-color: #bcdcc8; color: #226b3d; border-radius: 4px; }
+.message-error { background: #fff0f0; border-color: #e8b8b8; color: #9b3131; }
+.message-warning { background: #fff8e9; border-color: #e6cf9c; color: #815c0a; }
+.message-info { background: #edf7fc; border-color: #b4d7e9; color: #075f8e; }
+.info-note { border-color: #c9e0eb; border-left: 3px solid var(--brand-blue); background: #f5fbfe; color: #4e6a79; border-radius: 4px; }
+.empty-state-icon { background: var(--brand-blue-light); color: var(--brand-blue-ink); border-radius: 6px; }
+.empty-state h3 { color: var(--brand-blue-ink); }
+.empty-state p { color: var(--muted); }
+.news-placeholder .empty-state-icon { color: var(--brand-blue); }
+.news-placeholder p { color: var(--muted); }
+.news-structure span { color: var(--brand-blue-ink); border-color: #cce1ec; background: #f3faff; border-radius: 4px; }
+.error-number { color: var(--brand-blue); font-weight: 700; }
+.error-content p { color: var(--muted); }
+
+/* A compact blue signature at the bottom of the existing content column. */
+
+/* The existing two-column sign-in page becomes a station-branded poster. */
+.login-page { background: #fff; }
+.login-story { background: #fff; border-right: 1px solid var(--line); }
+.login-story::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 34%;
+  background: var(--brand-skyline, none) center bottom / cover no-repeat;
+  opacity: .62;
+  pointer-events: none;
+}
+.login-brand.brand-gorvolna { margin: 0; }
+.login-brand .brand-logo { max-width: 260px; }
+.login-story-content { z-index: 1; }
+.login-story-content .eyebrow { color: var(--brand-green-ink); }
+.login-story h1 { color: var(--brand-blue); font-weight: 700; letter-spacing: -1.7px; }
+.login-story p { color: #526b79; }
+.wave-art { color: var(--brand-green); }
+.wave-art i { background: currentColor; }
+.login-story-footer { position: relative; z-index: 1; color: var(--brand-blue-ink); font-weight: 700; }
+.login-form-panel { background: #fff; }
+.login-form-wrap .eyebrow { color: var(--brand-green-ink); }
+.login-form-wrap h2 { color: var(--brand-blue-ink); font-weight: 700; }
+.login-form-wrap > .muted { color: var(--muted); }
+.login-help { color: var(--muted); }
+.login-copyright { color: #526f80; }
+
+@media (max-width: 760px) {
+  .brand .brand-logo { max-width: 184px; }
+  .login-brand .brand-logo { max-width: 220px; }
+  .login-story { border-right: 0; border-bottom: 1px solid var(--line); }
+  .login-story::after { height: 65%; opacity: .3; }
+  .login-story h1 { letter-spacing: -.7px; }
+  .menu-open .sidebar-backdrop { background: rgb(20 61 85 / 30%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-item, .button, .icon-button { transition: none; }
+}
