@@ -307,5 +307,5 @@ class EmployeeForm(forms.Form):
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ["first_name", "email"]
-        labels = {"first_name": "ФИО", "email": "Электронная почта"}
+        fields = ["first_name"]
+        labels = {"first_name": "ФИО"}

@@ -68,11 +68,14 @@ class InlineMessageTests(TestCase):
         self.assertEqual(list(response.context['messages']), [])
 
     def test_profile_save_persists_without_success_notice(self):
+        self.user.email = 'existing@example.org'
+        self.user.save(update_fields=['email'])
         response = self.client.post(reverse('newsroom:profile'), {'first_name': 'Обновлённое имя', 'email': 'editor@example.org'}, follow=True)
         self.assertEqual(response.status_code, 200)
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, 'Обновлённое имя')
-        self.assertEqual(self.user.email, 'editor@example.org')
+        self.assertEqual(self.user.email, 'existing@example.org')
+        self.assertNotContains(response, 'name="email"')
         self.assertNotContains(response, 'Профиль обновлён.')
         self.assertNoSideMessages(response)
         self.assertEqual(list(response.context['messages']), [])
