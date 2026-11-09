@@ -107,6 +107,14 @@ textarea:focus-visible {
 .mobile-menu { border-color: transparent; color: var(--brand-blue); }
 .mobile-menu .ui-icon { width: 22px; height: 22px; }
 .page-heading p { color: var(--muted); }
+.page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
 
 /* Green is the action colour; blue identifies navigation. */
 .button { border-radius: 4px; font-weight: 700; box-shadow: none; }
