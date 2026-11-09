@@ -64,7 +64,7 @@ class ShiftForm(forms.ModelForm):
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
     start_time = forms.TimeField(
-        label="От", input_formats=["%H:%M", "%H:%M:%S"],
+        label="С", input_formats=["%H:%M", "%H:%M:%S"],
         widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": "60"}),
     )
     end_time = forms.TimeField(
@@ -110,7 +110,7 @@ class ShiftForm(forms.ModelForm):
         if len(datetimes) != 2:
             return data
         if datetimes["end_time"] <= datetimes["start_time"]:
-            self.add_error("end_time", "Время «До» должно быть позже времени «От». Эфир проходит в пределах одного дня.")
+            self.add_error("end_time", "Время «До» должно быть позже времени «С». Эфир проходит в пределах одного дня.")
             return data
         self.instance.starts_at = datetimes["start_time"]
         self.instance.ends_at = datetimes["end_time"]
@@ -123,7 +123,7 @@ class BookingForm(forms.ModelForm):
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "min": "1970-01-01", "max": "2200-12-31"}),
     )
     start_time = forms.TimeField(
-        label="От", input_formats=["%H:%M", "%H:%M:%S"],
+        label="С", input_formats=["%H:%M", "%H:%M:%S"],
         widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "step": "60"}),
     )
     end_time = forms.TimeField(
@@ -192,7 +192,7 @@ class BookingForm(forms.ModelForm):
         if len(datetimes) != 2:
             return data
         if datetimes["end_time"] <= datetimes["start_time"]:
-            self.add_error("end_time", "Время «До» должно быть позже времени «От». Бронирование проходит в пределах одного дня.")
+            self.add_error("end_time", "Время «До» должно быть позже времени «С». Бронирование проходит в пределах одного дня.")
             return data
         self.instance.starts_at = datetimes["start_time"]
         self.instance.ends_at = datetimes["end_time"]
