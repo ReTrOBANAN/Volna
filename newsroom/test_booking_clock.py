@@ -130,7 +130,7 @@ class BookingClockTests(TestCase):
         self.assertEqual(self.state(entry), 'planned')
         response = self.client.post(reverse('newsroom:booking_action', args=[entry.pk]),
                                     {'action': 'status', 'status': 'recording'}, follow=True)
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, entry.get_absolute_url())
         self.assertEqual(self.state(entry), 'planned')
         self.assertFalse(any(action.get('status') == 'recording' for action in response.context['actions']))
 
@@ -167,12 +167,12 @@ class BookingClockTests(TestCase):
                 self.client.force_login(actor)
                 url = reverse('newsroom:booking_action', args=[entry.pk])
                 response = self.client.post(url, {'action': 'status', 'status': 'completed'}, follow=True)
-                self.assertEqual(response.status_code, 200)
+                self.assertRedirects(response, entry.get_absolute_url())
                 self.assertContains(response, 'message-error')
                 self.assertEqual(self.state(entry), 'planned')
                 self.mock_now.return_value = entry.starts_at
                 response = self.client.post(url, {'action': 'status', 'status': 'completed'}, follow=True)
-                self.assertEqual(response.status_code, 200)
+                self.assertRedirects(response, reverse('newsroom:bookings'))
                 self.assertEqual(self.state(entry), 'completed')
                 self.assertEqual(AuditEntry.objects.filter(object_type='studiobooking', object_id=entry.pk,
                                                           actor=actor, action='Статус: recording → completed').count(), 1)

@@ -373,6 +373,7 @@ def booking_action(request, pk):
             services.complete_booking_montage(request.user, booking)
         elif action == "status":
             services.set_booking_status(request.user, booking, request.POST.get("status"))
+            return redirect("newsroom:bookings")
         else:
             raise ValidationError("Неизвестное действие.")
     except ValidationError as exc:
