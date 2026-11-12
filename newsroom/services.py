@@ -266,6 +266,45 @@ def claim_booking(user, booking):
         return booking
 
 
+def release_booking(user, booking):
+    if role_of(user) != Role.ENGINEER:
+        raise PermissionDenied('Отказаться от брони может только назначенный инженер.')
+    now = _booking_now()
+    sync_booking_statuses(now=now, booking_ids=[booking.pk])
+    with transaction.atomic():
+        booking = StudioBooking.objects.select_for_update().select_related('created_by', 'studio').get(pk=booking.pk)
+        user = get_user_model().objects.select_related('employee').filter(pk=user.pk).first()
+        if user is None or role_of(user) != Role.ENGINEER:
+            raise PermissionDenied('Отказаться от брони может только действующий инженер.')
+        if booking.engineer_id is not None and booking.engineer_id != user.pk:
+            raise PermissionDenied('Вы можете отказаться только от своей брони.')
+        now = _booking_now()
+        sync_booking_statuses(now=now, booking_ids=[booking.pk])
+        booking.refresh_from_db(fields=['status'])
+        if (booking.kind != 'video' or booking.status not in {'planned', 'recording', 'completed'}
+                or booking.montage_completed):
+            raise ValidationError('Отказаться можно только от видеозаписи, монтаж которой ещё не завершён.')
+        if booking.engineer_id is None:
+            return booking
+        won = StudioBooking.objects.filter(
+            pk=booking.pk, engineer=user, kind='video', status=booking.status, montage_completed=False,
+        ).update(engineer=None, updated_at=now)
+        if not won:
+            raise ValidationError('Бронь уже изменилась. Обновите страницу и повторите действие.')
+        booking.engineer = None
+        booking.updated_at = now
+        audit(user, booking, 'Инженер отказался от видеозаписи')
+        notify([booking.created_by], 'Инженер отказался от видеозаписи',
+               f'{user.get_full_name() or user.username} отказался от записи «{booking.title}»: '
+               f'{_booking_slot_label(booking)}.', booking.get_absolute_url())
+        engineers = (candidate for candidate in users_with_roles(Role.ENGINEER)
+                     if candidate.pk != user.pk and role_of(candidate) == Role.ENGINEER)
+        notify(engineers, 'Видеозапись снова доступна',
+               f'Запись «{booking.title}»: {_booking_slot_label(booking)}. Можно взять её в работу.',
+               booking.get_absolute_url())
+        return booking
+
+
 def complete_booking_montage(user, booking):
     if role_of(user) != Role.ENGINEER:
         raise PermissionDenied('Монтаж может завершить назначенный инженер.')

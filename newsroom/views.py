@@ -357,6 +357,9 @@ def booking_detail(request, pk):
     if (is_engineer and booking.engineer_id == request.user.pk and booking.kind == "video"
             and booking.status == "completed" and not booking.montage_completed):
         actions.append({"action": "montage", "label": "Отметить «Смонтировано»"})
+    if (is_engineer and booking.engineer_id == request.user.pk and booking.kind == "video"
+            and not booking.montage_completed and booking.status in ("planned", "recording", "completed")):
+        actions.append({"action": "release", "label": "Отказаться от брони"})
     return render(request, "newsroom/booking_detail.html", {
         "page_title": booking.title, "booking": booking, "can_edit": editable, "actions": actions,
         "booking_status_watch": _booking_watch([booking]),
@@ -372,6 +375,8 @@ def booking_action(request, pk):
     try:
         if action == "claim":
             services.claim_booking(request.user, booking)
+        elif action == "release":
+            services.release_booking(request.user, booking)
         elif action == "montage":
             services.complete_booking_montage(request.user, booking)
         elif action == "status":
