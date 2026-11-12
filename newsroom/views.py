@@ -376,14 +376,13 @@ def booking_action(request, pk):
             services.complete_booking_montage(request.user, booking)
         elif action == "status":
             services.set_booking_status(request.user, booking, request.POST.get("status"))
-            return redirect("newsroom:bookings")
         else:
             raise ValidationError("Неизвестное действие.")
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
     except StudioBooking.DoesNotExist as exc:
         raise Http404 from exc
-    return redirect("newsroom:booking_detail", pk=pk)
+    return redirect("newsroom:bookings")
 
 
 @login_required

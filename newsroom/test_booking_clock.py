@@ -130,9 +130,10 @@ class BookingClockTests(TestCase):
         self.assertEqual(self.state(entry), 'planned')
         response = self.client.post(reverse('newsroom:booking_action', args=[entry.pk]),
                                     {'action': 'status', 'status': 'recording'}, follow=True)
-        self.assertRedirects(response, entry.get_absolute_url())
+        self.assertRedirects(response, reverse('newsroom:bookings'))
         self.assertEqual(self.state(entry), 'planned')
-        self.assertFalse(any(action.get('status') == 'recording' for action in response.context['actions']))
+        detail = self.client.get(entry.get_absolute_url())
+        self.assertFalse(any(action.get('status') == 'recording' for action in detail.context['actions']))
 
     def test_completion_button_is_available_only_from_start_until_end(self):
         entry = self.booking()
@@ -167,7 +168,7 @@ class BookingClockTests(TestCase):
                 self.client.force_login(actor)
                 url = reverse('newsroom:booking_action', args=[entry.pk])
                 response = self.client.post(url, {'action': 'status', 'status': 'completed'}, follow=True)
-                self.assertRedirects(response, entry.get_absolute_url())
+                self.assertRedirects(response, reverse('newsroom:bookings'))
                 self.assertContains(response, 'message-error')
                 self.assertEqual(self.state(entry), 'planned')
                 self.mock_now.return_value = entry.starts_at

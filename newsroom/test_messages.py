@@ -87,7 +87,7 @@ class InlineMessageTests(TestCase):
                                               starts_at=start, ends_at=start + timedelta(hours=1),
                                               responsible=self.user, created_by=self.user)
         response = self.client.post(reverse('newsroom:booking_action', args=[booking.pk]), {'action': 'status', 'status': 'unknown'}, follow=True)
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, reverse('newsroom:bookings'))
         booking.refresh_from_db()
         self.assertEqual(booking.status, 'planned')
         self.assertContains(response, 'Этот переход статуса недоступен.')
