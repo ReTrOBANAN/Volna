@@ -229,28 +229,33 @@ def claim_booking(user, booking):
     now = _booking_now()
     sync_booking_statuses(now=now, booking_ids=[booking.pk])
     with transaction.atomic():
+        booking = StudioBooking.objects.select_for_update().select_related('created_by').get(pk=booking.pk)
         # Authentication instances can be stale after an account is disabled or
         # its role changes; the assignment must use the current account state.
         user = get_user_model().objects.select_related('employee').filter(pk=user.pk).first()
         if user is None or role_of(user) != Role.ENGINEER:
             raise PermissionDenied('Взять бронь в работу может только действующий инженер.')
-        booking = StudioBooking.objects.select_for_update().select_related('created_by').get(pk=booking.pk)
         now = _booking_now()
+        # The recording may have ended while this request waited for its lock.
+        sync_booking_statuses(now=now, booking_ids=[booking.pk])
+        booking.refresh_from_db(fields=['status'])
         if booking.kind != 'video':
             raise ValidationError('Взять в работу можно только бронь с видео.')
-        if booking.status not in {'planned', 'recording'} or booking.ends_at <= now:
-            raise ValidationError('Эта запись уже завершена или недоступна для назначения инженера.')
+        if booking.status not in {'planned', 'recording', 'completed'}:
+            raise ValidationError('Эта запись недоступна для назначения инженера.')
         if booking.engineer_id == user.pk:
             return booking
         if booking.engineer_id:
             raise ValidationError('За эту бронь уже отвечает другой инженер. Обновите страницу.')
+        if booking.montage_completed:
+            raise ValidationError('Монтаж этой записи уже завершён.')
         booking.engineer = user
         _validate_booking_engineer_availability(booking, now)
         # The SQLite IMMEDIATE transaction serializes availability checks across
         # bookings; the conditional update also prevents replacing an assignee.
         won = StudioBooking.objects.filter(
             pk=booking.pk, engineer__isnull=True, kind='video', status=booking.status,
-            starts_at=booking.starts_at, ends_at=booking.ends_at, ends_at__gt=now,
+            starts_at=booking.starts_at, ends_at=booking.ends_at, montage_completed=False,
         ).update(engineer=user, updated_at=now)
         if not won:
             raise ValidationError('Бронь уже изменилась. Обновите страницу и повторите действие.')
@@ -262,18 +267,24 @@ def claim_booking(user, booking):
 
 
 def complete_booking_montage(user, booking):
-    if role_of(user) not in {Role.DIRECTOR, Role.ENGINEER}:
+    if role_of(user) != Role.ENGINEER:
         raise PermissionDenied('Монтаж может завершить назначенный инженер.')
     now = _booking_now()
     sync_booking_statuses(now=now, booking_ids=[booking.pk])
     with transaction.atomic():
         booking = StudioBooking.objects.select_for_update().get(pk=booking.pk)
-        if not (role_of(user) == Role.DIRECTOR or booking.engineer_id == user.pk):
+        user = get_user_model().objects.select_related('employee').filter(pk=user.pk).first()
+        if user is None or role_of(user) != Role.ENGINEER or booking.engineer_id != user.pk:
             raise PermissionDenied('Монтаж может завершить назначенный инженер.')
         if booking.kind != 'video' or booking.status != 'completed' or booking.montage_completed:
             raise ValidationError('Сначала завершите видеозапись. Повторная отметка недоступна.')
+        won = StudioBooking.objects.filter(
+            pk=booking.pk, engineer=user, kind='video', status='completed', montage_completed=False,
+        ).update(montage_completed=True, updated_at=now)
+        if not won:
+            raise ValidationError('Бронь уже изменилась. Обновите страницу и повторите действие.')
         booking.montage_completed = True
-        booking.save(update_fields=['montage_completed', 'updated_at'])
+        booking.updated_at = now
         audit(user, booking, 'Монтаж студийной видеозаписи завершён')
         notify([booking.responsible], 'Студийная видеозапись смонтирована', booking.title, booking.get_absolute_url())
         return booking

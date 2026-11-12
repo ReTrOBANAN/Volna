@@ -190,11 +190,15 @@ class BookingClockTests(TestCase):
         self.assertEqual(self.state(entry), 'completed')
         self.assertEqual(self.client.get(reverse('newsroom:booking_edit', args=[entry.pk])).status_code, 403)
 
-    def test_expired_video_cannot_be_claimed_but_assigned_engineer_can_finish_montage_after_auto_end(self):
+    def test_expired_video_can_be_claimed_and_its_engineer_can_finish_montage_after_auto_end(self):
         expired = self.booking(kind='video', starts_at=self.now - timedelta(hours=2), ends_at=self.now - timedelta(hours=1))
-        with self.assertRaises(ValidationError):
-            claim_booking(self.users['engineer'], expired)
+        claim_booking(self.users['engineer'], expired)
         self.assertEqual(self.state(expired), 'completed')
+        self.assertEqual(expired.engineer_id, self.users['engineer'].pk)
+        complete_booking_montage(self.users['engineer'], expired)
+        expired.refresh_from_db()
+        self.assertTrue(expired.montage_completed)
+        self.assertEqual(self.system_audit(expired).count(), 1)
         assigned = self.booking(kind='video', engineer=self.users['engineer'], starts_at=self.now - timedelta(hours=2), ends_at=self.now - timedelta(hours=1))
         complete_booking_montage(self.users['engineer'], assigned)
         assigned.refresh_from_db()

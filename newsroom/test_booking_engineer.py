@@ -20,9 +20,9 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import AuditEntry, Department, Notification, Studio, StudioBooking
+from .models import AuditEntry, Department, EmployeeProfile, Notification, Studio, StudioBooking
 from .permissions import assign_role, setup_roles
-from .services import claim_booking, delete_booking, save_booking
+from .services import claim_booking, complete_booking_montage, delete_booking, save_booking
 
 User = get_user_model()
 
@@ -36,6 +36,8 @@ class BookingEngineerClaimTests(TestCase):
         assign_role(cls.creator, 'radio_reporter', Department.objects.get(slug='radio'))
         cls.chief = User.objects.create_user(username='claim_chief')
         assign_role(cls.chief, 'radio_chief', Department.objects.get(slug='radio'))
+        cls.director = User.objects.create_user(username='claim_director')
+        assign_role(cls.director, 'director', Department.objects.get(slug='management'))
         cls.engineer = User.objects.create_user(username='claim_engineer', first_name='Инженер')
         cls.other_engineer = User.objects.create_user(username='claim_other_engineer')
         for user in [cls.engineer, cls.other_engineer]:
@@ -130,14 +132,12 @@ class BookingEngineerClaimTests(TestCase):
         self.assertIsNone(entry.engineer_id)
         self.assertFalse(self.claim_audit(entry).exists())
 
-    def test_audio_terminal_and_just_ended_video_cannot_be_claimed(self):
+    def test_audio_cancelled_and_already_mounted_video_cannot_be_claimed(self):
         cases = [
             ({'kind': 'audio'}, 'planned'),
-            ({'status': 'completed'}, 'completed'),
+            ({'kind': 'audio', 'status': 'completed'}, 'completed'),
             ({'status': 'cancelled'}, 'cancelled'),
-            ({'starts_at': self.now - timedelta(hours=1), 'ends_at': self.now}, 'completed'),
-            ({'status': 'recording', 'starts_at': self.now - timedelta(hours=2),
-              'ends_at': self.now - timedelta(hours=1)}, 'completed'),
+            ({'status': 'completed', 'montage_completed': True}, 'completed'),
         ]
         for values, status in cases:
             with self.subTest(values=values):
@@ -149,16 +149,40 @@ class BookingEngineerClaimTests(TestCase):
                 self.assertEqual(entry.status, status)
                 self.assertFalse(self.claim_audit(entry).exists())
 
+    def test_completed_and_just_ended_video_can_be_claimed_without_blocking_active_work(self):
+        active = self.booking(engineer=self.engineer)
+        cases = [
+            {'status': 'completed'},  # Early completion, even with a future scheduled end.
+            {'starts_at': self.now - timedelta(hours=1), 'ends_at': self.now},
+            {'status': 'recording', 'starts_at': self.now - timedelta(hours=2),
+             'ends_at': self.now - timedelta(hours=1)},
+        ]
+        for values in cases:
+            with self.subTest(values=values):
+                entry = self.booking(studio=self.other_studio, **values)
+                claimed = claim_booking(self.engineer, entry)
+                claimed.refresh_from_db()
+                self.assertEqual(claimed.engineer_id, self.engineer.pk)
+                self.assertEqual(claimed.status, 'completed')
+                self.assertEqual(claimed.created_by_id, self.creator.pk)
+                self.assertEqual(claimed.responsible_id, self.creator.pk)
+                self.assertFalse(claimed.montage_completed)
+                self.assertEqual(self.claim_audit(claimed).count(), 1)
+        active.refresh_from_db()
+        self.assertEqual(active.status, 'planned')
+        self.assertEqual(active.engineer_id, self.engineer.pk)
+
+    def test_recording_ending_while_waiting_for_claim_lock_becomes_completed_and_claimable(self):
         waiting = self.booking(starts_at=self.now - timedelta(minutes=15),
                                ends_at=self.now + timedelta(seconds=1))
         ticks = iter([self.now, waiting.ends_at])
         with patch('newsroom.services._booking_now',
                    side_effect=lambda explicit=None: explicit if explicit is not None else next(ticks)):
-            with self.assertRaises(ValidationError):
-                claim_booking(self.engineer, waiting)
+            claim_booking(self.engineer, waiting)
         waiting.refresh_from_db()
-        self.assertIsNone(waiting.engineer_id, 'the recording ended while the claim waited for its lock')
-        self.assertFalse(self.claim_audit(waiting).exists())
+        self.assertEqual(waiting.engineer_id, self.engineer.pk)
+        self.assertEqual(waiting.status, 'completed')
+        self.assertEqual(self.claim_audit(waiting).count(), 1)
 
     def test_engineer_overlap_across_studios_is_rejected_but_adjacent_slots_are_allowed(self):
         first = self.booking()
@@ -231,6 +255,96 @@ class BookingEngineerClaimTests(TestCase):
         delete_booking(self.chief, entry)
         self.assertEqual(client.post(action_url, {'action': 'claim',
                                                   'csrfmiddlewaretoken': client.cookies['csrftoken'].value}).status_code, 404)
+
+    def test_http_completed_claim_gives_montage_exclusively_to_the_claiming_engineer(self):
+        entry = self.booking(status='completed', starts_at=self.now - timedelta(hours=2),
+                             ends_at=self.now - timedelta(hours=1))
+        action_url = reverse('newsroom:booking_action', args=[entry.pk])
+        self.client.force_login(self.engineer)
+        detail = self.client.get(entry.get_absolute_url())
+        self.assertContains(detail, 'Взять бронь в работу')
+        self.assertNotContains(detail, 'Отметить «Смонтировано»')
+        response = self.client.post(action_url, {'action': 'claim', 'engineer': self.other_engineer.pk}, follow=True)
+        self.assertRedirects(response, entry.get_absolute_url())
+        self.assertContains(response, 'Отметить «Смонтировано»')
+        self.assertNotContains(response, 'Взять бронь в работу')
+        entry.refresh_from_db()
+        self.assertEqual(entry.engineer_id, self.engineer.pk, 'the POST cannot choose another engineer')
+        self.assertEqual(entry.status, 'completed')
+        self.assertFalse(entry.montage_completed)
+
+        for actor in [self.other_engineer, self.director, self.creator]:
+            with self.subTest(actor=actor.username):
+                self.client.force_login(actor)
+                detail = self.client.get(entry.get_absolute_url())
+                self.assertNotContains(detail, 'Отметить «Смонтировано»')
+                self.assertNotContains(detail, 'Взять бронь в работу')
+                self.assertEqual(self.client.post(action_url, {'action': 'montage'}).status_code, 403)
+                with self.assertRaises(PermissionDenied):
+                    complete_booking_montage(actor, entry)
+        entry.refresh_from_db()
+        self.assertFalse(entry.montage_completed)
+
+        claim_notice_ids = list(Notification.objects.filter(url=entry.get_absolute_url()).values_list('pk', flat=True))
+        self.client.force_login(self.engineer)
+        self.assertRedirects(self.client.post(action_url, {'action': 'claim'}), entry.get_absolute_url())
+        self.assertEqual(self.claim_audit(entry).count(), 1)
+        self.assertEqual(list(Notification.objects.filter(url=entry.get_absolute_url()).values_list('pk', flat=True)),
+                         claim_notice_ids)
+        response = self.client.post(action_url, {'action': 'montage'}, follow=True)
+        self.assertRedirects(response, entry.get_absolute_url())
+        self.assertNotContains(response, 'Отметить «Смонтировано»')
+        entry.refresh_from_db()
+        self.assertEqual(entry.status, 'completed')
+        self.assertTrue(entry.montage_completed)
+        completed_audit = AuditEntry.objects.filter(object_type='studiobooking', object_id=entry.pk,
+                                                    action='Монтаж студийной видеозаписи завершён')
+        self.assertEqual(completed_audit.get().actor, self.engineer)
+        completed_notice = Notification.objects.filter(url=entry.get_absolute_url(), recipient=self.creator,
+                                                       title='Студийная видеозапись смонтирована')
+        self.assertEqual(completed_notice.count(), 1)
+        response = self.client.post(action_url, {'action': 'montage'}, follow=True)
+        self.assertContains(response, 'message-error')
+        self.assertEqual(completed_audit.count(), 1)
+        self.assertEqual(completed_notice.count(), 1)
+        self.assertRedirects(self.client.post(action_url, {'action': 'claim'}), entry.get_absolute_url())
+        self.assertEqual(self.claim_audit(entry).count(), 1)
+
+    def test_assigned_engineer_cannot_mark_montage_for_unfinished_audio_or_cancelled_work(self):
+        cases = [
+            {},
+            {'starts_at': self.now - timedelta(minutes=15), 'ends_at': self.now + timedelta(minutes=30)},
+            {'kind': 'audio', 'status': 'completed'},
+            {'status': 'cancelled'},
+        ]
+        self.client.force_login(self.engineer)
+        for values in cases:
+            with self.subTest(values=values):
+                entry = self.booking(engineer=self.engineer, **values)
+                with self.assertRaises(ValidationError):
+                    complete_booking_montage(self.engineer, entry)
+                self.assertNotContains(self.client.get(entry.get_absolute_url()), 'Отметить «Смонтировано»')
+                entry.refresh_from_db()
+                self.assertFalse(entry.montage_completed)
+
+    def test_montage_rechecks_revoked_engineer_accounts_even_with_stale_user_instances(self):
+        for revoked in ['inactive', 'mismatched_profile']:
+            with self.subTest(revoked=revoked):
+                actor = User.objects.select_related('employee').get(pk=self.engineer.pk)
+                self.assertEqual(actor.employee.role, 'engineer')
+                entry = self.booking(status='completed', engineer=actor)
+                if revoked == 'inactive':
+                    User.objects.filter(pk=actor.pk).update(is_active=False)
+                else:
+                    EmployeeProfile.objects.filter(user=actor).update(role='tv_reporter')
+                with self.assertRaises(PermissionDenied):
+                    complete_booking_montage(actor, entry)
+                entry.refresh_from_db()
+                self.assertFalse(entry.montage_completed)
+                self.assertFalse(AuditEntry.objects.filter(object_type='studiobooking', object_id=entry.pk,
+                                                          action='Монтаж студийной видеозаписи завершён').exists())
+                User.objects.filter(pk=actor.pk).update(is_active=True)
+                EmployeeProfile.objects.filter(user=actor).update(role='engineer')
 
     def test_new_video_work_notifications_skip_archives_and_include_active_audio_to_video_changes(self):
         mismatched = User.objects.create_user(username='notice_mismatched_engineer')
@@ -321,7 +435,7 @@ class BookingEngineerClaimTests(TestCase):
                 '_sqlite_claim_races(sys.argv[1])', database,
             ], cwd=settings.BASE_DIR, env=environment, capture_output=True, text=True, timeout=45)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn('Both real SQLite claim races passed.', result.stdout)
+            self.assertIn('All real SQLite claim races passed.', result.stdout)
 
 
 def _sqlite_claim_races(expected_database):
@@ -338,11 +452,11 @@ def _sqlite_claim_races(expected_database):
     studios = [Studio.objects.create(name=f'Race studio {index}') for index in range(2)]
     now = datetime(2027, 3, 12, 3, tzinfo=datetime_timezone.utc)
 
-    def booking(studio, hour):
+    def booking(studio, hour, status='planned'):
         return StudioBooking.objects.create(title='Concurrent video', studio=studio, kind='video',
                                             starts_at=now + timedelta(hours=hour),
                                             ends_at=now + timedelta(hours=hour + 1),
-                                            created_by=creator, responsible=creator)
+                                            created_by=creator, responsible=creator, status=status)
 
     def race(pairs):
         barrier = Barrier(2)
@@ -380,5 +494,13 @@ def _sqlite_claim_races(expected_database):
         assert AuditEntry.objects.filter(object_type='studiobooking', object_id__in=[entry.pk for entry in parallel],
                                          action='Инженер принял видеосъёмку').count() == 1
         assert Notification.objects.filter(url__in=[entry.get_absolute_url() for entry in parallel]).count() == 1
+        completed = booking(studios[0], -3, status='completed')
+        race([(engineer.pk, completed.pk) for engineer in engineers])
+        completed.refresh_from_db()
+        assert completed.status == 'completed'
+        assert completed.engineer_id in [engineer.pk for engineer in engineers]
+        assert AuditEntry.objects.filter(object_type='studiobooking', object_id=completed.pk,
+                                         action='Инженер принял видеосъёмку').count() == 1
+        assert Notification.objects.filter(url=completed.get_absolute_url()).count() == 1
     connections.close_all()
-    print('Both real SQLite claim races passed.')
+    print('All real SQLite claim races passed.')

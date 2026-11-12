@@ -129,8 +129,8 @@ class ShiftArchiveNavigationTests(TestCase):
         self.assertEqual(field['min'], '1970-01-01')
         self.assertEqual(field['max'], '2200-12-31')
         self.assertIn('required', field)
-        self.assertTrue(any(button['attrs'].get('type') == 'submit' and button['text'].strip()
-                            for button in form['buttons']))
+        self.assertFalse(any(button['attrs'].get('type') == 'submit' for button in form['buttons']))
+        self.assertContains(response, 'js/shift_calendar.js')
         self.assertEqual(len(parsed.selected_days), 1)
         self.assertEqual([day['date'] for day in response.context['days'] if day['is_selected']], [selected])
 

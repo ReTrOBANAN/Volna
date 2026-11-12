@@ -347,12 +347,15 @@ def booking_detail(request, pk):
     require_capability(request.user, "bookings_view")
     booking = get_object_or_404(StudioBooking.objects.select_related("studio", "responsible", "engineer", "created_by"), pk=pk)
     editable = can_edit_booking(request.user, booking)
+    is_engineer = role_of(request.user) == "engineer"
     actions = []
     if editable and booking.status == "recording":
         actions.append({"action": "status", "status": "completed", "label": "Завершить запись"})
-    if role_of(request.user) == "engineer" and booking.kind == "video" and not booking.engineer_id and booking.status in ("planned", "recording"):
+    if (is_engineer and booking.kind == "video" and not booking.engineer_id
+            and not booking.montage_completed and booking.status in ("planned", "recording", "completed")):
         actions.append({"action": "claim", "label": "Взять бронь в работу"})
-    if booking.kind == "video" and booking.status == "completed" and not booking.montage_completed and (booking.engineer_id == request.user.pk or role_of(request.user) == "director"):
+    if (is_engineer and booking.engineer_id == request.user.pk and booking.kind == "video"
+            and booking.status == "completed" and not booking.montage_completed):
         actions.append({"action": "montage", "label": "Отметить «Смонтировано»"})
     return render(request, "newsroom/booking_detail.html", {
         "page_title": booking.title, "booking": booking, "can_edit": editable, "actions": actions,
