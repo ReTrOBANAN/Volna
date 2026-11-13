@@ -74,6 +74,16 @@
   background: var(--green, #008738);
   color: #fff;
 }
+.shift-schedule-page .calendar-day.today { background: #fff; }
+.shift-schedule-page .calendar-day.today .calendar-day-header { background: #f3f6f8; }
+.shift-schedule-page .shift-day-date strong {
+  min-width: 32px;
+  line-height: 32px;
+}
+.shift-schedule-page .calendar-day.today .shift-day-date strong {
+  width: 32px;
+  height: 32px;
+}
 .month-week .outside-month { background: #f8fafb; }
 .month-week .outside-month .calendar-day-header strong { color: #9cabb5; }
 .calendar-empty { color: #71838e; }
