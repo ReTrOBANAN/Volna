@@ -88,6 +88,51 @@
 .month-week .outside-month .calendar-day-header strong { color: #9cabb5; }
 .calendar-empty { color: #71838e; }
 
+/* The monthly TV calendar shares the date navigation and readable today marker. */
+.event-schedule-page .shift-schedule-toolbar { gap: 10px; margin-bottom: 18px; }
+.event-schedule-page .calendar-nav { flex-wrap: wrap; min-width: 0; }
+.event-schedule-page .shift-schedule-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+}
+.event-schedule-page .shift-calendar-jump { width: auto; }
+.event-schedule-page .calendar-day-header { padding: 8px 10px; text-align: center; }
+.event-schedule-page .shift-day-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 3px;
+}
+.event-schedule-page .shift-day-date strong {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  margin: 0;
+  font-size: 17px;
+  line-height: 32px;
+}
+.event-schedule-page .shift-day-date > span { font-size: 10px; line-height: 1.4; }
+.event-schedule-page .calendar-day.today { background: #fff; }
+.event-schedule-page .calendar-day.today .calendar-day-header { background: #f3f6f8; }
+.event-schedule-page .calendar-day.today .shift-day-date strong {
+  width: 32px;
+  height: 32px;
+  color: #fff;
+}
+.event-dialog .dialog-body .detail-layout {
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+  gap: 18px;
+}
+@media (max-width: 760px) {
+  .event-dialog .dialog-body .detail-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
 .shift-add-link {
   border-color: #98bfd4;
   background: #fff;

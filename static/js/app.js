@@ -6,35 +6,47 @@
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeMenu(); });
   document.querySelectorAll('[data-dismiss]').forEach(el => el.addEventListener('click', () => el.parentElement.remove()));
   document.addEventListener('submit', event => { const form = event.target.closest('[data-confirm]'); if (form && !window.confirm(form.dataset.confirm)) event.preventDefault(); });
-  const bookingDialog = document.querySelector('[data-booking-dialog]');
-  if (bookingDialog && typeof bookingDialog.showModal === 'function') {
-    const body = bookingDialog.querySelector('[data-dialog-body]');
+  [
+    {dialogSelector: '[data-booking-dialog]', linkSelector: '[data-booking-preview]', loadingText: 'Загружаем информацию о записи…'},
+    {dialogSelector: '[data-event-dialog]', linkSelector: '[data-event-preview]', loadingText: 'Загружаем информацию об инфоповоде…'},
+  ].forEach(({dialogSelector, linkSelector, loadingText}) => {
+    const dialog = document.querySelector(dialogSelector);
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    const body = dialog.querySelector('[data-dialog-body]');
+    const closeButton = dialog.querySelector('[data-dialog-close]');
+    if (!body || !closeButton) return;
     let previewRequest = 0;
-    bookingDialog.querySelector('[data-dialog-close]').addEventListener('click', () => bookingDialog.close());
-    bookingDialog.addEventListener('click', event => {
-      if (event.target !== bookingDialog) return;
-      const box = bookingDialog.getBoundingClientRect();
-      if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) bookingDialog.close();
+    closeButton.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+      if (event.target !== dialog) return;
+      const box = dialog.getBoundingClientRect();
+      if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
     });
-    document.querySelectorAll('[data-booking-preview]').forEach(link => link.addEventListener('click', async event => {
-      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    // Delegation also handles links inserted by the calendar's live navigation.
+    document.addEventListener('click', async event => {
+      const link = event.target?.closest?.(linkSelector);
+      if (!link || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       const currentRequest = ++previewRequest;
-      body.innerHTML = '<p class="dialog-loading" role="status">Загружаем информацию о записи…</p>';
-      bookingDialog.showModal();
+      const loading = document.createElement('p');
+      loading.className = 'dialog-loading';
+      loading.setAttribute('role', 'status');
+      loading.textContent = loadingText;
+      body.replaceChildren(loading);
+      if (!dialog.open) dialog.showModal();
       try {
         const response = await fetch(link.href, {credentials: 'same-origin', cache: 'no-store'});
-        if (!response.ok) throw new Error('Unable to load booking');
+        if (!response.ok) throw new Error('Unable to load details');
         const page = new DOMParser().parseFromString(await response.text(), 'text/html');
         const heading = page.querySelector('main .page-heading');
         const detail = page.querySelector('main .detail-layout');
-        if (!heading || !detail) throw new Error('Booking unavailable');
-        if (bookingDialog.open && currentRequest === previewRequest) body.replaceChildren(heading, detail);
+        if (!heading || !detail) throw new Error('Details unavailable');
+        if (dialog.open && currentRequest === previewRequest) body.replaceChildren(heading, detail);
       } catch (_) {
-        if (bookingDialog.open && currentRequest === previewRequest) window.location.assign(link.href);
+        if (dialog.open && currentRequest === previewRequest) window.location.assign(link.href);
       }
-    }));
-  }
+    });
+  });
   const refreshNotifications = async () => {
     if (document.hidden) return;
     try {

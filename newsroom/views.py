@@ -410,6 +410,7 @@ def booking_delete(request, pk):
 @login_required
 def events(request):
     require_capability(request.user, "events_view")
+    today = timezone.localdate()
     day = _selected_date(request)
     start = day.replace(day=1)
     end = (start.replace(day=28) + timedelta(days=4)).replace(day=1)
@@ -428,12 +429,15 @@ def events(request):
     for week in calendar.Calendar(firstweekday=0).monthdatescalendar(start.year, start.month):
         weeks.append([{
             "date": current, "in_month": current.month == start.month,
-            "is_today": current == timezone.localdate(),
+            "is_today": current == today, "is_selected": current == day,
+            "can_create": 1970 <= current.year <= 2200,
             "events": [event for event in qs if event.starts_at < _aware_day(current + timedelta(days=1)) and event.ends_at > _aware_day(current)],
         } for current in week])
     return render(request, "newsroom/events.html", {
         "page_title": "Инфоповоды", "events": qs, "weeks": weeks, "month": start,
         "previous_date": start - timedelta(days=1), "next_date": end,
+        "selected_date": day, "has_previous": start.year > 1970 or start.month > 1,
+        "has_next": end.year <= 2200,
         "selected_status": status, "status_choices": Event._meta.get_field("status").choices,
     })
 
@@ -447,14 +451,19 @@ def event_create(request, pk=None):
             raise PermissionDenied
     else:
         require_capability(request.user, "events_create")
-    form = EventForm(request.POST or None, instance=event)
+    initial = {}
+    if event is None:
+        selected = _selected_date(request)
+        initial = {"starts_at": _aware_day(selected) + timedelta(hours=10),
+                   "ends_at": _aware_day(selected) + timedelta(hours=11)}
+    form = EventForm(request.POST or None, instance=event, initial=initial)
     if request.method == "POST" and form.is_valid():
         try:
             event = services.save_event(request.user, form.save(commit=False))
         except ValidationError as exc:
             _add_error(form, exc)
         else:
-            return redirect("newsroom:event_detail", pk=event.pk)
+            return redirect("newsroom:events")
     return _form_page(request, form, "Изменить инфоповод" if pk else "Новый инфоповод", "events")
 
 
@@ -500,7 +509,7 @@ def event_action(request, pk):
             services.transition_event(request.user, event, action)
     except ValidationError as exc:
         messages.error(request, " ".join(exc.messages))
-    return redirect("newsroom:event_detail", pk=pk)
+    return redirect("newsroom:events")
 
 
 @login_required
