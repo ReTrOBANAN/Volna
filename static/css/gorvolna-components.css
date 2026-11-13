@@ -188,38 +188,38 @@
 .booking-kind-icon { color: inherit; }
 
 /* Personal entries keep their status hue, with only a slightly deeper fill. */
-.shift-entry.is-personal { background-color: #e9f2ed; }
-.shift-entry.is-personal:hover { background-color: #e1eee6; }
+.shift-entry.is-personal { background-color: #dcebe2; }
+.shift-entry.is-personal:hover { background-color: #d2e5da; }
 
 .calendar-entry {
-  --personal-fill: #e4f0f9;
-  --personal-hover-fill: #d9eaf6;
+  --personal-fill: #d4e7f5;
+  --personal-hover-fill: #c9e0f1;
 }
 .calendar-entry.approved,
 .calendar-entry.published {
-  --personal-fill: #e3f1e8;
-  --personal-hover-fill: #dcebe2;
+  --personal-fill: #d4e9dc;
+  --personal-hover-fill: #c9e1d2;
 }
 .calendar-entry.in_progress,
 .calendar-entry.filming_done,
 .calendar-entry.materials_sent,
 .calendar-entry.shot,
 .calendar-entry.transferred {
-  --personal-fill: #f8efdf;
-  --personal-hover-fill: #f1e6d2;
+  --personal-fill: #f2e3c8;
+  --personal-hover-fill: #ead9b7;
 }
 .calendar-entry.edited {
-  --personal-fill: #ebe6f5;
-  --personal-hover-fill: #e3dcef;
+  --personal-fill: #e0d7ee;
+  --personal-hover-fill: #d6cae7;
 }
 .booking-calendar .calendar-entry.recording {
-  --personal-fill: #f9e6e9;
-  --personal-hover-fill: #f3dce1;
+  --personal-fill: #f3d4da;
+  --personal-hover-fill: #ecc7cf;
 }
 .calendar-entry.cancelled,
 .booking-calendar .calendar-entry.completed {
-  --personal-fill: #e8edf1;
-  --personal-hover-fill: #dfe6eb;
+  --personal-fill: #dbe2e8;
+  --personal-hover-fill: #cfd8e1;
 }
 .calendar-entry.is-personal,
 .booking-calendar .calendar-entry.is-personal {
@@ -229,8 +229,8 @@
 .booking-calendar .calendar-entry.is-personal:hover {
   background-color: var(--personal-hover-fill);
 }
-tbody tr.is-personal { background-color: #eff7f3; }
-tbody tr.is-personal:hover { background-color: #e8f2ed; }
+tbody tr.is-personal { background-color: #e2efe7; }
+tbody tr.is-personal:hover { background-color: #d8e8df; }
 
 /* The daily preview remains neutral; a blue outline identifies unsaved work. */
 .shift-day-panel { background: #fff; }
