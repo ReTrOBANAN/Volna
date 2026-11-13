@@ -18,7 +18,7 @@ from . import services
 from .forms import BookingForm, EmployeeForm, EventForm, ProfileForm, ProposalForm, ShiftForm, UploadForm
 from .models import BroadcastShift, Event, EventAssignment, Notification, Proposal, Role, Studio, StudioBooking, UploadedFile
 from .permissions import (
-    can, can_edit_booking, can_edit_event, can_manage_employee,
+    can, can_edit_booking, can_edit_event, can_finish_booking, can_manage_employee,
     can_view_event_materials, can_view_file, require_capability, role_of,
     visible_events, visible_files,
 )
@@ -349,7 +349,7 @@ def booking_detail(request, pk):
     editable = can_edit_booking(request.user, booking)
     is_engineer = role_of(request.user) == "engineer"
     actions = []
-    if editable and booking.status == "recording":
+    if can_finish_booking(request.user, booking) and booking.status == "recording":
         actions.append({"action": "status", "status": "completed", "label": "Завершить запись"})
     if (is_engineer and booking.kind == "video" and not booking.engineer_id
             and not booking.montage_completed and booking.status in ("planned", "recording", "completed")):

@@ -16,7 +16,7 @@ from .models import (
     Proposal, Role, StudioBooking, UploadedFile,
 )
 from .permissions import (
-    ROLE_CAPABILITIES, ROLE_DEPARTMENTS, allowed_employee_roles, assign_role, can, can_edit_booking, can_edit_event,
+    ROLE_CAPABILITIES, ROLE_DEPARTMENTS, allowed_employee_roles, assign_role, can, can_edit_booking, can_edit_event, can_finish_booking,
     can_manage_employee, can_view_event_materials, can_view_file, require_capability, role_of, users_with_roles,
 )
 
@@ -184,8 +184,12 @@ def set_booking_status(user, booking, status):
     sync_booking_statuses(now=now, booking_ids=[booking.pk])
     with transaction.atomic():
         booking = StudioBooking.objects.select_for_update().get(pk=booking.pk)
-        if not can_edit_booking(user, booking):
+        user = get_user_model().objects.select_related('employee').filter(pk=user.pk).first()
+        if user is None or not can_finish_booking(user, booking):
             raise PermissionDenied('Вы не можете изменять статус этой брони.')
+        now = _booking_now()
+        sync_booking_statuses(now=now, booking_ids=[booking.pk])
+        booking.refresh_from_db(fields=['status'])
         if status == 'recording':
             raise ValidationError('Запись начинается автоматически по расписанию. Вручную начать запись нельзя.')
         allowed = {'recording': {'completed'}}

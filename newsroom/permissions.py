@@ -79,6 +79,12 @@ def can_edit_booking(user, booking):
     return can(user, 'bookings_create') and booking.created_by_id == user.pk and booking.status in {'planned', 'recording'}
 
 
+def can_finish_booking(user, booking):
+    return can_edit_booking(user, booking) or (
+        role_of(user) == Role.ENGINEER and booking.kind == 'video' and booking.engineer_id == user.pk
+    )
+
+
 def can_edit_event(user, event):
     return can(user, 'events_manage') and (event.status not in {'approved', 'published'} or role_of(user) in {Role.DIRECTOR, Role.TV_CHIEF})
 
