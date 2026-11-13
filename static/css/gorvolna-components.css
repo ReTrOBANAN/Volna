@@ -187,6 +187,51 @@
 .booking-calendar-legend .legend-dot.completed { background: #9da7b0; }
 .booking-kind-icon { color: inherit; }
 
+/* Personal entries keep their status hue, with only a slightly deeper fill. */
+.shift-entry.is-personal { background-color: #e9f2ed; }
+.shift-entry.is-personal:hover { background-color: #e1eee6; }
+
+.calendar-entry {
+  --personal-fill: #e4f0f9;
+  --personal-hover-fill: #d9eaf6;
+}
+.calendar-entry.approved,
+.calendar-entry.published {
+  --personal-fill: #e3f1e8;
+  --personal-hover-fill: #dcebe2;
+}
+.calendar-entry.in_progress,
+.calendar-entry.filming_done,
+.calendar-entry.materials_sent,
+.calendar-entry.shot,
+.calendar-entry.transferred {
+  --personal-fill: #f8efdf;
+  --personal-hover-fill: #f1e6d2;
+}
+.calendar-entry.edited {
+  --personal-fill: #ebe6f5;
+  --personal-hover-fill: #e3dcef;
+}
+.booking-calendar .calendar-entry.recording {
+  --personal-fill: #f9e6e9;
+  --personal-hover-fill: #f3dce1;
+}
+.calendar-entry.cancelled,
+.booking-calendar .calendar-entry.completed {
+  --personal-fill: #e8edf1;
+  --personal-hover-fill: #dfe6eb;
+}
+.calendar-entry.is-personal,
+.booking-calendar .calendar-entry.is-personal {
+  background-color: var(--personal-fill);
+}
+.calendar-entry.is-personal:hover,
+.booking-calendar .calendar-entry.is-personal:hover {
+  background-color: var(--personal-hover-fill);
+}
+tbody tr.is-personal { background-color: #eff7f3; }
+tbody tr.is-personal:hover { background-color: #e8f2ed; }
+
 /* The daily preview remains neutral; a blue outline identifies unsaved work. */
 .shift-day-panel { background: #fff; }
 .shift-day-panel .card-header p { color: #647b88; }

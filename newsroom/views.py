@@ -74,6 +74,8 @@ def shifts(request):
     start = day - timedelta(days=day.weekday())
     end = start + timedelta(days=14)
     entries = BroadcastShift.objects.filter(starts_at__gte=_aware_day(start), starts_at__lt=_aware_day(end)).select_related("employee").order_by("starts_at")
+    for entry in entries:
+        entry.is_personal = entry.employee_id == request.user.pk
     days = []
     for offset in range(14):
         current = start + timedelta(days=offset)
@@ -170,6 +172,8 @@ def bookings(request):
     length = 1 if mode == "day" else 7
     end = start + timedelta(days=length)
     entries = StudioBooking.objects.filter(starts_at__lt=_aware_day(end), ends_at__gt=_aware_day(start)).exclude(status="cancelled").select_related("studio", "responsible", "engineer").order_by("starts_at")
+    for entry in entries:
+        entry.is_personal = request.user.pk in {entry.created_by_id, entry.responsible_id, entry.engineer_id}
     studios = []
     for studio in Studio.objects.order_by("pk"):
         studio_bookings = [b for b in entries if b.studio_id == studio.pk]
@@ -416,6 +420,10 @@ def events(request):
         qs = qs.filter(status=status)
     else:
         status = ""
+    for event in qs:
+        event.is_personal = request.user.pk in {
+            event.created_by_id, event.reporter_id, event.camera_id, event.photographer_id, event.editor_id,
+        }
     weeks = []
     for week in calendar.Calendar(firstweekday=0).monthdatescalendar(start.year, start.month):
         weeks.append([{
